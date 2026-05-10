@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English RPG - Reborn</title>
+    <title>English RPG - Final Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -12,7 +12,7 @@
         .shake { animation: shake 0.2s; }
         @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-10px);} 75%{transform:translateX(10px);} }
         .tab-content { display: none; }
-        .active { display: block; }
+        .active { display: block !important; }
     </style>
 </head>
 <body class="min-h-screen pb-24">
@@ -34,24 +34,22 @@
                     <div id="bhp-b" class="hp-fill bg-red-600 h-full" style="width: 0%"></div>
                 </div>
             </div>
-
             <div class="bg-white text-slate-900 p-8 rounded-3xl text-center shadow-2xl">
                 <div id="qcat" class="text-[10px] font-bold text-blue-500 border border-blue-500 px-2 rounded inline-block mb-2">CATEGORY</div>
                 <div id="qtext" class="text-2xl font-bold italic">Loading...</div>
             </div>
-
             <div class="flex gap-2">
-                <input type="text" id="ans" placeholder="答えを入力..." class="flex-1 p-4 rounded-xl bg-slate-800 border border-white/10 outline-none text-xl">
+                <input type="text" id="ans" placeholder="答えを入力..." class="flex-1 p-4 rounded-xl bg-slate-800 border border-white/10 outline-none text-xl text-white">
                 <button onclick="attack()" class="bg-blue-600 px-6 py-4 rounded-xl font-bold">ATTACK</button>
             </div>
         </div>
 
         <div id="chat-view" class="tab-content">
             <div class="bg-slate-800/50 p-4 rounded-3xl h-[65vh] flex flex-col border border-white/10">
-                <div id="cbox" class="flex-1 overflow-y-auto space-y-4 p-2 text-sm"></div>
+                <div id="cbox" class="flex-1 overflow-y-auto space-y-4 p-2 text-sm text-white"></div>
                 <div class="mt-4 flex gap-2">
                     <button onclick="startVoice()" id="mic" class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center"><i class="fas fa-microphone text-xl"></i></button>
-                    <input type="text" id="cin" class="flex-1 bg-slate-700 p-3 rounded-full outline-none" placeholder="Talk in English...">
+                    <input type="text" id="cin" class="flex-1 bg-slate-700 p-3 rounded-full outline-none text-white" placeholder="Talk in English...">
                     <button onclick="sendChat()" class="text-blue-500 px-2 text-xl"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
@@ -59,12 +57,36 @@
     </main>
 
     <nav class="fixed bottom-0 w-full bg-slate-900 p-4 border-t border-white/10 flex justify-around">
-        <button onclick="switchView('battle')" id="btn-battle" class="flex flex-col items-center text-blue-500"><i class="fas fa-sword text-xl"></i><span class="text-[10px]">BATTLE</span></button>
-        <button onclick="switchView('chat')" id="btn-chat" class="flex flex-col items-center text-slate-400"><i class="fas fa-comment text-xl"></i><span class="text-[10px]">CHAT</span></button>
+        <button onclick="switchView('battle')" id="btn-battle" class="flex flex-col items-center text-blue-500">
+            <i class="fas fa-sword text-xl"></i><span class="text-[10px]">BATTLE</span>
+        </button>
+        <button onclick="switchView('chat')" id="btn-chat" class="flex flex-col items-center text-slate-400">
+            <i class="fas fa-comment text-xl"></i><span class="text-[10px]">CHAT</span>
+        </button>
     </nav>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycby82wh7hTGjjupwRT2RtKaUWNZTlSoXET007bBadJm-HkSFn_2_kQrLyCGMbz_Tw1kNBg/exec"; // ★ここに新しいURLを貼る
+        const GAS_URL = "https://script.google.com/macros/s/AKfycby82wh7hTGjjupwRT2RtKaUWNZTlSoXET007bBadJm-HkSFn_2_kQrLyCGMbz_Tw1kNBg/exec";
+
+        // 画面切り替え関数の修正版
+        function switchView(v) {
+            // 全画面から active クラスを消す
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            // 指定した画面に active をつける
+            document.getElementById(v + '-view').classList.add('active');
+            
+            // アイコンの色の変更（classList.replace ではなく、直接上書きしてエラーを防ぐ）
+            const btnBattle = document.getElementById('btn-battle');
+            const btnChat = document.getElementById('btn-chat');
+            
+            if (v === 'battle') {
+                btnBattle.className = "flex flex-col items-center text-blue-500";
+                btnChat.className = "flex flex-col items-center text-slate-400";
+            } else {
+                btnBattle.className = "flex flex-col items-center text-slate-400";
+                btnChat.className = "flex flex-col items-center text-blue-500";
+            }
+        }
 
         async function load() {
             try {
@@ -82,7 +104,7 @@
                 window.qid = d.question.id;
             } catch(e) { 
                 console.error(e);
-                alert("データの読み込みに失敗しました。GASのURLとスプレッドシートのシート名を確認してください。"); 
+                alert("データの読み込みに失敗しました。GASのURLを確認してください。"); 
             }
         }
 
@@ -91,7 +113,6 @@
             if(!a) return;
             const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "checkAnswer", userAnswer: a, questionId: window.qid }) });
             const r = await res.json();
-            
             if(r.isCorrect) {
                 document.getElementById('b-card').classList.add('shake');
                 setTimeout(()=>document.getElementById('b-card').classList.remove('shake'), 500);
@@ -99,15 +120,6 @@
             alert(r.msg);
             document.getElementById('ans').value = "";
             load();
-        }
-
-        function switchView(v) {
-            document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-            document.getElementById(v + '-view').classList.add('active');
-            // アイコンの色変更
-            document.getElementById('btn-battle').classList.replace('text-blue-500', 'text-slate-400');
-            document.getElementById('btn-chat').classList.replace('text-blue-500', 'text-slate-400');
-            document.getElementById('btn-' + v).classList.replace('text-slate-400', 'text-blue-500');
         }
 
         function startVoice() {
@@ -126,16 +138,20 @@
             const i = document.getElementById('cin');
             const msg = i.value; if(!msg) return;
             const box = document.getElementById('cbox');
-            box.innerHTML += `<div class="text-right"><span class="bg-blue-600 p-2 rounded-lg inline-block shadow-lg">${msg}</span></div>`;
+            box.innerHTML += `<div class="text-right mb-2"><span class="bg-blue-600 p-2 rounded-lg inline-block shadow-lg">${msg}</span></div>`;
             i.value = "Thinking...";
-            const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "chatWithAI", userMessage: msg }) });
-            const r = await res.json();
-            i.value = "";
-            box.innerHTML += `<div class="text-left"><span class="bg-slate-700 p-2 rounded-lg inline-block shadow-lg">${r}</span></div>`;
-            box.scrollTop = box.scrollHeight;
-            // 音声読み上げ
-            const s = new SpeechSynthesisUtterance(r.split('【')[0]);
-            s.lang = 'en-US'; speechSynthesis.speak(s);
+            try {
+                const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "chatWithAI", userMessage: msg }) });
+                const r = await res.json();
+                i.value = "";
+                box.innerHTML += `<div class="text-left mb-2"><span class="bg-slate-700 p-2 rounded-lg inline-block shadow-lg text-white">${r}</span></div>`;
+                box.scrollTop = box.scrollHeight;
+                const s = new SpeechSynthesisUtterance(r.split('【')[0]);
+                s.lang = 'en-US'; speechSynthesis.speak(s);
+            } catch(e) {
+                i.value = "";
+                alert("Chat Error: " + e);
+            }
         }
 
         window.onload = load;
