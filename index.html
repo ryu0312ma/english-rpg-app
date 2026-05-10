@@ -7,12 +7,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background-color: #0f172a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0f172a; color: white; font-family: sans-serif; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; }
         .hp-bar { height: 10px; background: #334155; border-radius: 5px; overflow: hidden; }
         .hp-fill { height: 100%; transition: width 0.5s ease-in-out; }
+        .recording { color: #ef4444; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body class="min-h-screen pb-20">
@@ -33,33 +35,34 @@
                 <div class="hp-bar mb-1"><div id="boss-hp-bar" class="hp-fill bg-red-500" style="width: 0%"></div></div>
                 <div class="text-right text-xs text-slate-400">HP: <span id="boss-hp-text">--/--</span></div>
             </div>
-
             <div class="bg-white text-slate-900 rounded-xl p-6 shadow-2xl mb-4 min-h-[150px] flex flex-col justify-center items-center text-center">
                 <div id="category-tag" class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded mb-2">---</div>
-                <div id="question-text" class="text-2xl font-bold">...</div>
+                <div id="question-text" class="text-2xl font-bold italic">...</div>
             </div>
-
             <div class="space-y-3">
-                <input type="text" id="answer-input" placeholder="答えを入力..." class="w-full p-4 rounded-xl bg-slate-800 border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-xl">
-                <button onclick="submitAnswer()" id="attack-btn" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold text-xl transition-all active:scale-95 shadow-lg">ATTACK</button>
+                <input type="text" id="answer-input" placeholder="答えを入力..." class="w-full p-4 rounded-xl bg-slate-800 border border-white/10 text-center text-xl outline-none">
+                <button onclick="submitAnswer()" id="attack-btn" class="w-full bg-blue-600 py-4 rounded-xl font-bold text-xl transition-all active:scale-95">ATTACK</button>
             </div>
         </div>
 
         <div id="chat-view" class="tab-content">
-            <div class="glass-card p-4 mb-4 h-[60vh] flex flex-col">
+            <div class="glass-card p-4 mb-4 h-[65vh] flex flex-col">
                 <div id="chat-box" class="flex-1 overflow-y-auto space-y-4 mb-4 p-2 text-sm"></div>
-                <div class="flex gap-2">
-                    <input type="text" id="chat-input" class="flex-1 bg-slate-800 rounded-lg p-3 outline-none" placeholder="AIに英語で話しかけよう">
-                    <button onclick="sendChatMessage()" class="bg-blue-600 p-3 rounded-lg"><i class="fas fa-paper-plane"></i></button>
+                <div class="flex gap-2 items-center bg-slate-800 rounded-full p-1 pr-4">
+                    <button onclick="toggleSpeech()" id="mic-btn" class="bg-slate-700 w-12 h-12 rounded-full flex items-center justify-center text-xl">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <input type="text" id="chat-input" class="flex-1 bg-transparent p-2 outline-none" placeholder="英語で話しかけてね">
+                    <button onclick="sendChatMessage()" class="text-blue-500 text-xl"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
         </div>
 
         <div id="fortune-view" class="tab-content">
             <div class="glass-card p-6 text-center">
-                <h2 class="text-2xl font-bold mb-4">AI攻略能力予測</h2>
-                <div id="fortune-result" class="bg-slate-800/50 p-4 rounded-lg min-h-[100px] mb-4 flex items-center justify-center italic text-slate-300">
-                    「PREDICT」ボタンを押すとAIがあなたのステータスを分析します
+                <h2 class="text-2xl font-bold mb-4 italic">AI Fortune</h2>
+                <div id="fortune-result" class="bg-slate-800/50 p-4 rounded-lg min-h-[100px] mb-4 flex items-center justify-center italic text-slate-300 text-sm">
+                    ステータスを元に未来を予測します
                 </div>
                 <button onclick="predictFortune()" id="predict-btn" class="w-full bg-purple-600 py-4 rounded-xl font-bold">PREDICT</button>
             </div>
@@ -67,102 +70,119 @@
     </main>
 
     <nav class="fixed bottom-0 w-full bg-slate-900 border-t border-white/10 p-2">
-        <div class="max-w-md mx-auto flex justify-around items-center">
+        <div class="max-w-md mx-auto flex justify-around">
             <button onclick="switchView('battle')" class="flex flex-col items-center gap-1 text-blue-400">
-                <i class="fas fa-swords text-xl"></i><span class="text-[10px]">BATTLE</span>
+                <i class="fas fa-bolt text-xl"></i><span class="text-[10px]">BATTLE</span>
             </button>
             <button onclick="switchView('chat')" class="flex flex-col items-center gap-1 text-slate-400">
-                <i class="fas fa-robot text-xl"></i><span class="text-[10px]">CHAT</span>
+                <i class="fas fa-comment text-xl"></i><span class="text-[10px]">CHAT</span>
             </button>
             <button onclick="switchView('fortune')" class="flex flex-col items-center gap-1 text-slate-400">
-                <i class="fas fa-crystal-ball text-xl"></i><span class="text-[10px]">FORTUNE</span>
+                <i class="fas fa-stars text-xl"></i><span class="text-[10px]">FORTUNE</span>
             </button>
         </div>
     </nav>
 
     <script>
-        // ★ここにあなたのGASのURLを貼ってください
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbwBJk9EId4qETuAFVJK7rKXVbjIue0pDqJe6S_yuAyFgmLJIYrw088KeqiHQAZggs0DxQ/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwBJk9EId4qETuAFVJK7rKXVbjIue0pDqJe6S_yuAyFgmLJIYrw088KeqiHQAZggs0DxQ/exec"; // ★あなたのURLに！
 
         let currentQuestionId = "";
-        let currentCategory = "すべて";
+        let recognition;
 
-        // 画面切り替え機能（これがエラーの正体でした！）
         function switchView(viewName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.getElementById(viewName + '-view').classList.add('active');
-            
-            // アイコンの色変更
             document.querySelectorAll('nav button').forEach(btn => btn.classList.replace('text-blue-400', 'text-slate-400'));
             event.currentTarget.classList.replace('text-slate-400', 'text-blue-400');
         }
 
-        // 初期データ取得
         async function loadGameData() {
             try {
-                const res = await fetch(GAS_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ action: "getInitialData", category: currentCategory })
-                });
+                const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "getInitialData" }) });
                 const data = await res.json();
-                updateUI(data);
+                document.getElementById('user-level').innerText = data.user.level;
+                document.getElementById('user-hp-bar').style.width = (data.user.hp / data.user.maxHp * 100) + "%";
+                document.getElementById('boss-name').innerText = data.boss.name;
+                document.getElementById('boss-hp-bar').style.width = (data.boss.hp / data.boss.maxHp * 100) + "%";
+                document.getElementById('boss-hp-text').innerText = `${data.boss.hp}/${data.boss.maxHp}`;
+                document.getElementById('question-text').innerText = data.question.text;
+                document.getElementById('category-tag').innerText = data.question.category;
+                currentQuestionId = data.question.id;
             } catch (e) { console.error(e); }
-        }
-
-        function updateUI(data) {
-            document.getElementById('user-level').innerText = data.user.level;
-            document.getElementById('user-hp-bar').style.width = (data.user.hp / data.user.maxHp * 100) + "%";
-            document.getElementById('boss-name').innerText = data.boss.name;
-            document.getElementById('boss-hp-bar').style.width = (data.boss.hp / data.boss.maxHp * 100) + "%";
-            document.getElementById('boss-hp-text').innerText = `${data.boss.hp}/${data.boss.maxHp}`;
-            document.getElementById('question-text').innerText = data.question.text;
-            document.getElementById('category-tag').innerText = data.question.category;
-            currentQuestionId = data.question.id;
         }
 
         async function submitAnswer() {
             const val = document.getElementById('answer-input').value;
             if(!val) return;
-            document.getElementById('attack-btn').disabled = true;
-            document.getElementById('attack-btn').innerText = "ATTACKING...";
-
             const res = await fetch(GAS_URL, {
                 method: "POST",
-                body: JSON.stringify({ action: "checkAnswer", userAnswer: val, questionId: currentQuestionId, currentCategory: currentCategory })
+                body: JSON.stringify({ action: "checkAnswer", userAnswer: val, questionId: currentQuestionId })
             });
             const result = await res.json();
             alert(result.message);
             document.getElementById('answer-input').value = "";
             loadGameData();
-            document.getElementById('attack-btn').disabled = false;
-            document.getElementById('attack-btn').innerText = "ATTACK";
         }
 
+        // --- 音声入力の設定 ---
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                document.getElementById('chat-input').value = text;
+                toggleSpeech(); // 録音停止
+                sendChatMessage(); // 自動送信
+            };
+        }
+
+        function toggleSpeech() {
+            const btn = document.getElementById('mic-btn');
+            if (btn.classList.contains('recording')) {
+                recognition.stop();
+                btn.classList.remove('recording');
+            } else {
+                recognition.start();
+                btn.classList.add('recording');
+            }
+        }
+
+        // --- チャット送信とAIの音声再生 ---
         async function sendChatMessage() {
             const input = document.getElementById('chat-input');
             const msg = input.value;
             if(!msg) return;
             addMessage("You", msg);
-            input.value = "";
+            input.value = "AI Thinking...";
             const res = await fetch(GAS_URL, {
                 method: "POST",
                 body: JSON.stringify({ action: "chatWithAI", userMessage: msg })
             });
             const reply = await res.json();
-            addMessage("AI Tutor", reply);
+            input.value = "";
+            addMessage("AI", reply);
+            speak(reply);
+        }
+
+        function speak(text) {
+            // 日本語の解説を省いて英語部分だけ喋らせるための簡易処理
+            const englishPart = text.split('【')[0]; 
+            const uttr = new SpeechSynthesisUtterance(englishPart);
+            uttr.lang = 'en-US';
+            speechSynthesis.speak(uttr);
         }
 
         function addMessage(sender, text) {
             const box = document.getElementById('chat-box');
             const div = document.createElement('div');
             div.className = sender === "You" ? "text-right" : "text-left";
-            div.innerHTML = `<div class="inline-block p-2 rounded-lg ${sender === "You" ? "bg-blue-600" : "bg-slate-700"}">${text}</div>`;
+            div.innerHTML = `<div class="inline-block p-3 rounded-2xl max-w-[80%] ${sender === "You" ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-200"}">${text}</div>`;
             box.appendChild(div);
             box.scrollTop = box.scrollHeight;
         }
 
         async function predictFortune() {
-            document.getElementById('fortune-result').innerText = "Analyzing...";
+            document.getElementById('fortune-result').innerText = "Analyzing your soul...";
             const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "onPredictButtonClick" }) });
             const result = await res.json();
             document.getElementById('fortune-result').innerText = result;
