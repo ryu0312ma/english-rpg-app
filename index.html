@@ -7,185 +7,185 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background-color: #0f172a; color: white; font-family: sans-serif; }
+        body { background-color: #020617; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
+        .glass-card { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1.5rem; }
+        
+        /* HPバーの動き */
+        .hp-bar { height: 12px; background: #1e293b; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        .hp-fill { height: 100%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        /* ボス画像 */
+        #boss-container { position: relative; width: 240px; height: 240px; margin: 0 auto; transition: transform 0.1s; }
+        #boss-img { width: 100%; height: 100%; object-fit: cover; border-radius: 1.5rem; border: 3px solid #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.3); }
+        
+        /* ダメージアニメーション */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-15px); }
+            75% { transform: translateX(15px); }
+        }
+        .damage-shake { animation: shake 0.1s ease-in-out infinite; }
+        
+        @keyframes flashRed {
+            0% { box-shadow: inset 0 0 0px rgba(239, 68, 68, 0); }
+            50% { box-shadow: inset 0 0 100px rgba(239, 68, 68, 0.5); }
+            100% { box-shadow: inset 0 0 0px rgba(239, 68, 68, 0); }
+        }
+        .hurt-effect { animation: flashRed 0.5s ease-out; }
+
+        .btn-attack { background: linear-gradient(135deg, #2563eb, #1d4ed8); transition: all 0.2s; }
+        .btn-attack:active { transform: scale(0.95); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; }
-        .hp-bar { height: 10px; background: #334155; border-radius: 5px; overflow: hidden; }
-        .hp-fill { height: 100%; transition: width 0.5s ease-in-out; }
-        .recording { color: #ef4444; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
-<body class="min-h-screen pb-20">
+<body class="min-h-screen">
 
-    <div class="fixed top-0 w-full z-10 bg-slate-900/80 p-2 border-b border-white/10">
+    <div id="flash-overlay" class="fixed inset-0 pointer-events-none z-50"></div>
+
+    <header class="fixed top-0 w-full z-10 bg-slate-900/90 border-b border-white/5 p-3">
         <div class="max-w-md mx-auto flex items-center gap-4">
-            <div class="bg-blue-600 px-2 py-1 rounded text-xs font-bold">Lv.<span id="user-level">--</span></div>
+            <div class="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold italic">LV.<span id="user-level">--</span></div>
             <div class="flex-1">
-                <div class="hp-bar"><div id="user-hp-bar" class="hp-fill bg-green-500" style="width: 0%"></div></div>
+                <div class="hp-bar"><div id="user-hp-bar" class="hp-fill bg-gradient-to-r from-green-400 to-emerald-500" style="width: 100%"></div></div>
+                <div class="flex justify-between text-[10px] mt-1 text-slate-400 font-bold"><span>PLAYER HP</span><span id="user-hp-text">--/--</span></div>
             </div>
         </div>
-    </div>
+    </header>
 
-    <main class="max-w-md mx-auto pt-16 p-4">
-        <div id="battle-view" class="tab-content active">
-            <div class="glass-card p-6 mb-4 text-center">
-                <h2 id="boss-name" class="text-xl font-bold mb-2">Loading...</h2>
-                <div class="hp-bar mb-1"><div id="boss-hp-bar" class="hp-fill bg-red-500" style="width: 0%"></div></div>
-                <div class="text-right text-xs text-slate-400">HP: <span id="boss-hp-text">--/--</span></div>
+    <main class="max-w-md mx-auto pt-20 p-4 pb-24">
+        
+        <div id="battle-view" class="tab-content active space-y-6">
+            <div class="glass-card p-6 text-center">
+                <div id="boss-container">
+                    <img id="boss-img" src="https://placehold.co/400x400/1e293b/white?text=Waiting..." alt="Boss">
+                </div>
+                <h2 id="boss-name" class="text-2xl font-black mt-4 tracking-wider text-white italic uppercase">---</h2>
+                <div class="hp-bar mt-4"><div id="boss-hp-bar" class="hp-fill bg-gradient-to-r from-red-500 to-orange-600" style="width: 100%"></div></div>
+                <div class="text-[10px] text-slate-500 mt-1 font-bold">BOSS VITALITY: <span id="boss-hp-text">--/--</span></div>
             </div>
-            <div class="bg-white text-slate-900 rounded-xl p-6 shadow-2xl mb-4 min-h-[150px] flex flex-col justify-center items-center text-center">
-                <div id="category-tag" class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded mb-2">---</div>
-                <div id="question-text" class="text-2xl font-bold italic">...</div>
+
+            <div class="bg-white text-slate-900 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-center">
+                <div id="category-tag" class="inline-block text-[10px] font-black text-blue-600 border-2 border-blue-600 px-2 rounded mb-2">CATEGORY</div>
+                <div id="question-text" class="text-2xl font-bold">問題読み込み中...</div>
             </div>
-            <div class="space-y-3">
-                <input type="text" id="answer-input" placeholder="答えを入力..." class="w-full p-4 rounded-xl bg-slate-800 border border-white/10 text-center text-xl outline-none">
-                <button onclick="submitAnswer()" id="attack-btn" class="w-full bg-blue-600 py-4 rounded-xl font-bold text-xl transition-all active:scale-95">ATTACK</button>
+
+            <div class="space-y-4">
+                <input type="text" id="answer-input" autocomplete="off" placeholder="答えを入力..." class="w-full p-5 rounded-2xl bg-slate-800/50 border border-white/10 text-center text-xl font-bold focus:ring-4 focus:ring-blue-500/20 outline-none transition-all">
+                <button onclick="submitAnswer()" class="btn-attack w-full py-5 rounded-2xl font-black text-xl tracking-widest shadow-lg shadow-blue-900/20">ATTACK</button>
             </div>
         </div>
 
         <div id="chat-view" class="tab-content">
-            <div class="glass-card p-4 mb-4 h-[65vh] flex flex-col">
-                <div id="chat-box" class="flex-1 overflow-y-auto space-y-4 mb-4 p-2 text-sm"></div>
-                <div class="flex gap-2 items-center bg-slate-800 rounded-full p-1 pr-4">
-                    <button onclick="toggleSpeech()" id="mic-btn" class="bg-slate-700 w-12 h-12 rounded-full flex items-center justify-center text-xl">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                    <input type="text" id="chat-input" class="flex-1 bg-transparent p-2 outline-none" placeholder="英語で話しかけてね">
-                    <button onclick="sendChatMessage()" class="text-blue-500 text-xl"><i class="fas fa-paper-plane"></i></button>
+            <div class="glass-card p-4 h-[70vh] flex flex-col">
+                <div id="chat-box" class="flex-1 overflow-y-auto space-y-4 p-2 text-sm"></div>
+                <div class="mt-4 flex gap-2 bg-slate-800 rounded-full p-1 pr-4">
+                    <input type="text" id="chat-input" class="flex-1 bg-transparent p-3 pl-5 outline-none" placeholder="AI講師と英語で話そう...">
+                    <button onclick="sendChatMessage()" class="text-blue-500 text-xl px-2"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
         </div>
 
-        <div id="fortune-view" class="tab-content">
-            <div class="glass-card p-6 text-center">
-                <h2 class="text-2xl font-bold mb-4 italic">AI Fortune</h2>
-                <div id="fortune-result" class="bg-slate-800/50 p-4 rounded-lg min-h-[100px] mb-4 flex items-center justify-center italic text-slate-300 text-sm">
-                    ステータスを元に未来を予測します
-                </div>
-                <button onclick="predictFortune()" id="predict-btn" class="w-full bg-purple-600 py-4 rounded-xl font-bold">PREDICT</button>
-            </div>
-        </div>
     </main>
 
-    <nav class="fixed bottom-0 w-full bg-slate-900 border-t border-white/10 p-2">
+    <nav class="fixed bottom-0 w-full bg-slate-900/95 border-t border-white/5 p-4 backdrop-blur-md">
         <div class="max-w-md mx-auto flex justify-around">
-            <button onclick="switchView('battle')" class="flex flex-col items-center gap-1 text-blue-400">
-                <i class="fas fa-bolt text-xl"></i><span class="text-[10px]">BATTLE</span>
+            <button onclick="switchView('battle')" id="nav-battle" class="flex flex-col items-center gap-1 text-blue-500">
+                <i class="fas fa-sword text-2xl"></i><span class="text-[9px] font-bold">BATTLE</span>
             </button>
-            <button onclick="switchView('chat')" class="flex flex-col items-center gap-1 text-slate-400">
-                <i class="fas fa-comment text-xl"></i><span class="text-[10px]">CHAT</span>
-            </button>
-            <button onclick="switchView('fortune')" class="flex flex-col items-center gap-1 text-slate-400">
-                <i class="fas fa-stars text-xl"></i><span class="text-[10px]">FORTUNE</span>
+            <button onclick="switchView('chat')" id="nav-chat" class="flex flex-col items-center gap-1 text-slate-500">
+                <i class="fas fa-comment-alt text-2xl"></i><span class="text-[9px] font-bold">CHAT</span>
             </button>
         </div>
     </nav>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbyKt6kOR9Ym1Qvsx55lL4_-Qt1PK7NqQ1q0Oyxv2LeFABwH2TZ-IIbiEN6NPWorU7550w/exec"; // ★あなたのURLに！
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyKt6kOR9Ym1Qvsx55lL4_-Qt1PK7NqQ1q0Oyxv2LeFABwH2TZ-IIbiEN6NPWorU7550w/exec"; // ★ここに新しいURLを貼る
 
-        let currentQuestionId = "";
-        let recognition;
-
-        function switchView(viewName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.getElementById(viewName + '-view').classList.add('active');
-            document.querySelectorAll('nav button').forEach(btn => btn.classList.replace('text-blue-400', 'text-slate-400'));
-            event.currentTarget.classList.replace('text-slate-400', 'text-blue-400');
-        }
-
+        // 初期データ読み込み
         async function loadGameData() {
-            try {
-                const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "getInitialData" }) });
-                const data = await res.json();
-                document.getElementById('user-level').innerText = data.user.level;
-                document.getElementById('user-hp-bar').style.width = (data.user.hp / data.user.maxHp * 100) + "%";
-                document.getElementById('boss-name').innerText = data.boss.name;
-                document.getElementById('boss-hp-bar').style.width = (data.boss.hp / data.boss.maxHp * 100) + "%";
-                document.getElementById('boss-hp-text').innerText = `${data.boss.hp}/${data.boss.maxHp}`;
-                document.getElementById('question-text').innerText = data.question.text;
-                document.getElementById('category-tag').innerText = data.question.category;
-                currentQuestionId = data.question.id;
-            } catch (e) { console.error(e); }
-        }
-
-        async function submitAnswer() {
-            const val = document.getElementById('answer-input').value;
-            if(!val) return;
             const res = await fetch(GAS_URL, {
                 method: "POST",
-                body: JSON.stringify({ action: "checkAnswer", userAnswer: val, questionId: currentQuestionId })
+                body: JSON.stringify({ action: "getInitialData" })
+            });
+            const data = await res.json();
+            
+            // プレイヤー情報更新
+            document.getElementById('user-level').innerText = data.user.level;
+            document.getElementById('user-hp-bar').style.width = (data.user.hp / data.user.maxHp * 100) + "%";
+            document.getElementById('user-hp-text').innerText = `${data.user.hp}/${data.user.maxHp}`;
+            
+            // ボス情報更新
+            document.getElementById('boss-name').innerText = data.boss.name;
+            document.getElementById('boss-img').src = data.boss.image;
+            document.getElementById('boss-hp-bar').style.width = (data.boss.hp / data.boss.maxHp * 100) + "%";
+            document.getElementById('boss-hp-text').innerText = `${data.boss.hp}/${data.boss.maxHp}`;
+            
+            // 問題更新
+            document.getElementById('question-text').innerText = data.question.text;
+            document.getElementById('category-tag').innerText = data.question.category;
+            window.currentQuestionId = data.question.id;
+        }
+
+        // 回答送信
+        async function submitAnswer() {
+            const ans = document.getElementById('answer-input').value;
+            if (!ans) return;
+
+            const res = await fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "checkAnswer",
+                    userAnswer: ans,
+                    questionId: window.currentQuestionId
+                })
             });
             const result = await res.json();
+
+            if (result.isCorrect) {
+                // 正解：ボスを揺らす
+                const container = document.getElementById('boss-container');
+                container.classList.add('damage-shake');
+                setTimeout(() => container.classList.remove('damage-shake'), 500);
+            } else {
+                // 不正解：画面を赤く光らせる
+                const flash = document.getElementById('flash-overlay');
+                flash.classList.add('hurt-effect');
+                setTimeout(() => flash.classList.remove('hurt-effect'), 500);
+            }
+
             alert(result.message);
             document.getElementById('answer-input').value = "";
-            loadGameData();
+            loadGameData(); // 次の問題へ
         }
 
-        // --- 音声入力の設定 ---
-        if ('webkitSpeechRecognition' in window) {
-            recognition = new webkitSpeechRecognition();
-            recognition.lang = 'en-US';
-            recognition.onresult = (event) => {
-                const text = event.results[0][0].transcript;
-                document.getElementById('chat-input').value = text;
-                toggleSpeech(); // 録音停止
-                sendChatMessage(); // 自動送信
-            };
+        // 画面切り替え
+        function switchView(view) {
+            document.querySelectorAll('.tab-content').forEach(v => v.classList.remove('active'));
+            document.getElementById(view + '-view').classList.add('active');
+            
+            document.getElementById('nav-battle').classList.replace('text-blue-500', 'text-slate-500');
+            document.getElementById('nav-chat').classList.replace('text-blue-500', 'text-slate-500');
+            document.getElementById('nav-' + view).classList.replace('text-slate-500', 'text-blue-500');
         }
 
-        function toggleSpeech() {
-            const btn = document.getElementById('mic-btn');
-            if (btn.classList.contains('recording')) {
-                recognition.stop();
-                btn.classList.remove('recording');
-            } else {
-                recognition.start();
-                btn.classList.add('recording');
-            }
-        }
-
-        // --- チャット送信とAIの音声再生 ---
+        // チャット送信
         async function sendChatMessage() {
             const input = document.getElementById('chat-input');
             const msg = input.value;
             if(!msg) return;
-            addMessage("You", msg);
-            input.value = "AI Thinking...";
+
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML += `<div class="flex justify-end"><div class="bg-blue-600 p-3 rounded-2xl rounded-tr-none max-w-[80%]">${msg}</div></div>`;
+            input.value = "";
+
             const res = await fetch(GAS_URL, {
                 method: "POST",
                 body: JSON.stringify({ action: "chatWithAI", userMessage: msg })
             });
             const reply = await res.json();
-            input.value = "";
-            addMessage("AI", reply);
-            speak(reply);
-        }
-
-        function speak(text) {
-            // 日本語の解説を省いて英語部分だけ喋らせるための簡易処理
-            const englishPart = text.split('【')[0]; 
-            const uttr = new SpeechSynthesisUtterance(englishPart);
-            uttr.lang = 'en-US';
-            speechSynthesis.speak(uttr);
-        }
-
-        function addMessage(sender, text) {
-            const box = document.getElementById('chat-box');
-            const div = document.createElement('div');
-            div.className = sender === "You" ? "text-right" : "text-left";
-            div.innerHTML = `<div class="inline-block p-3 rounded-2xl max-w-[80%] ${sender === "You" ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-200"}">${text}</div>`;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        async function predictFortune() {
-            document.getElementById('fortune-result').innerText = "Analyzing your soul...";
-            const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "onPredictButtonClick" }) });
-            const result = await res.json();
-            document.getElementById('fortune-result').innerText = result;
+            chatBox.innerHTML += `<div class="flex justify-start"><div class="bg-slate-700 p-3 rounded-2xl rounded-tl-none max-w-[80%] whitespace-pre-wrap">${reply}</div></div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
 
         window.onload = loadGameData;
