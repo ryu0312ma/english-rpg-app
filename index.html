@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 既存のスタイル をそのまま適用 */
+    #chat-window { position: fixed; bottom: 20px; right: 20px; width: 350px; height: 450px; background: rgba(10, 15, 25, 0.95); border: 1px solid #00f2ff; border-radius: 15px; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0, 242, 255, 0.3); z-index: 9999; overflow: hidden; transition: 0.3s; }
+    .chat-header { background: linear-gradient(90deg, #00f2ff, #0072ff); padding: 10px 15px; color: white; font-weight: bold; display: flex; justify-content: space-between; cursor: pointer; }
+    .chat-display { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #050a14; }
+    .ai-msg { background: #1e293b; color: #00f2ff; align-self: flex-start; border: 1px solid #00f2ff; padding: 10px; border-radius: 10px; font-size: 14px; max-width: 85%; }
+    .user-msg { background: #00f2ff; color: #000; align-self: flex-end; padding: 10px; border-radius: 10px; font-size: 14px; max-width: 85%; font-weight: 500; }
+    .chat-input-area { padding: 10px; display: flex; gap: 8px; background: #0f172a; align-items: center; border-top: 1px solid #334155; }
+    #chat-input { flex: 1; background: #1e293b; border: 1px solid #334155; color: white; padding: 8px; border-radius: 5px; outline: none; }
+    #mic-btn { background: #1e293b; border: 1px solid #334155; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 20px; min-width: 45px; }
+    #chat-send-btn { background: #00f2ff; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; color: black; }
+  </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen p-5 flex flex-col items-center">
+
+  <div id="game-container" class="max-w-md w-full space-y-4">
+    <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
+      <span class="text-xs font-bold text-blue-400">学習モード:</span>
+      <select id="categorySelect" onchange="refreshData()" class="bg-slate-900 text-sm p-1 rounded border border-slate-600 outline-none">
+        <option value="すべて">すべて</option>
+        <option value="英検3級">英検3級</option>
+        <option value="TOEIC">TOEIC</option>
+      </select>
+    </div>
+
+    <div class="bg-slate-800 rounded-2xl p-6 border-4 border-red-900">
+      <h2 id="bossName" class="text-center text-2xl font-black mb-3">Loading...</h2>
+      <div class="w-full bg-slate-950 h-6 rounded-full overflow-hidden border border-slate-700">
+        <div id="bossHPBar" class="bg-gradient-to-r from-red-600 to-orange-400 h-full transition-all duration-700" style="width: 100%"></div>
+      </div>
+    </div>
+
+    <div class="bg-slate-800 rounded-xl p-4 flex items-center justify-between border-b-4 border-blue-900">
+      <div id="level-badge" class="bg-blue-600 px-3 py-1 rounded-lg font-black italic text-sm">Lv.1</div>
+      <div class="flex-1 px-4">
+        <div id="userName" class="text-xs text-blue-300 font-bold mb-1">---</div>
+        <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden">
+          <div id="xpBar" class="bg-cyan-400 h-full transition-all" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-slate-800 rounded-xl p-4 border border-cyan-500">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="text-cyan-400 font-bold text-sm tracking-widest">AI FORTUNE</h3>
+        <button onclick="getAIUpdate()" class="text-[10px] bg-cyan-900 px-3 py-1 rounded-full border border-cyan-400">未来を占う</button>
+      </div>
+      <div id="aiResult" class="text-xs text-slate-300 italic min-h-[40px]">AIが君の実力を分析するぞ...</div>
+    </div>
+
+    <div class="bg-white rounded-2xl p-8 text-center shadow-2xl">
+      <div id="currentCategoryBadge" class="inline-block px-2 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold rounded mb-2 uppercase">---</div>
+      <p id="questionText" class="text-4xl font-black text-slate-800 mb-8 italic">...</p>
+      <input type="hidden" id="currentQuestionId">
+      <input type="text" id="answerInput" class="w-full p-4 rounded-xl border-4 border-slate-200 text-slate-800 mb-4 text-center text-2xl font-bold outline-none" placeholder="..." autocomplete="off" onkeypress="if(event.key==='Enter')submitAnswer()">
+      <button onclick="submitAnswer()" class="w-full bg-slate-900 text-white py-5 rounded-xl font-black text-2xl shadow-xl active:scale-95">ATTACK</button>
+      <p id="resultMessage" class="mt-4 font-bold text-slate-500 h-6"></p>
+    </div>
+  </div>
+
+  <div id="chat-window">
+      <div class="chat-header" onclick="toggleChat()">
+          <span>🤖 AI English Tutor</span>
+          <span id="chat-toggle-icon">_</span>
+      </div>
+      <div id="chat-display" class="chat-display">
+          <div class="ai-msg">Hello! Let's practice English! Press 🎤 to speak.</div>
+      </div>
+      <div class="chat-input-area">
+          <button onclick="startListening()" id="mic-btn">🎤</button>
+          <input type="text" id="chat-input" placeholder="English..." onkeypress="if(event.key==='Enter')sendChat()">
+          <button onclick="sendChat()" id="chat-send-btn">Send</button>
+      </div>
+  </div>
+
+  <script>
+    // --- 接続設定 ---
+    const GAS_URL = "ここにあなたのGAS_WEB_APP_URLを貼り付け";
+
+    async function callGas(payload) {
+      const response = await fetch(GAS_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      return await response.json();
+    }
+
+    // --- RPGロジック ---
+    window.onload = () => refreshData();
+
+    async function refreshData() {
+      const category = document.getElementById('categorySelect').value;
+      const data = await callGas({ action: "getInitialData", category: category });
+      showInitialData(data);
+    }
+
+    function showInitialData(data) {
+      document.getElementById('userName').innerText = data.user.name;
+      document.getElementById('level-badge').innerText = "Lv." + data.user.level;
+      document.getElementById('xpBar').style.width = data.user.xp + "%";
+      document.getElementById('bossName').innerText = data.boss.name;
+      document.getElementById('bossHPBar').style.width = (data.boss.hp / data.boss.maxHp * 100) + "%";
+      document.getElementById('questionText').innerText = data.question.text;
+      document.getElementById('currentQuestionId').value = data.question.id;
+      document.getElementById('currentCategoryBadge').innerText = data.question.category;
+    }
+
+    async function submitAnswer() {
+      const val = document.getElementById('answerInput').value;
+      const qId = document.getElementById('currentQuestionId').value;
+      const cat = document.getElementById('categorySelect').value;
+      if(!val) return;
+
+      const res = await callGas({ action: "checkAnswer", userAnswer: val, questionId: qId, currentCategory: cat });
+      document.getElementById('resultMessage').innerText = res.message;
+      if(res.success) { 
+        document.getElementById('answerInput').value = ""; 
+        refreshData(); 
+      }
+    }
+
+    async function getAIUpdate() {
+      const display = document.getElementById('aiResult');
+      display.innerText = "水晶玉を覗き込んでいる...";
+      const res = await callGas({ action: "onPredictButtonClick" });
+      display.innerText = res;
+    }
+
+    // --- 音声認識ロジック ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+
+    async function startListening() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        document.getElementById('mic-btn').innerText = "Listening...";
+        recognition.start();
+      } catch (e) {
+        alert("マイク利用不可: " + e.message);
+      }
+    }
+
+    recognition.onresult = (event) => {
+      document.getElementById('chat-input').value = event.results[0][0].transcript;
+      sendChat();
+    };
+
+    recognition.onend = () => { document.getElementById('mic-btn').innerText = "🎤"; };
+
+    async function sendChat() {
+      const input = document.getElementById('chat-input');
+      const display = document.getElementById('chat-display');
+      const msg = input.value.trim();
+      if(!msg) return;
+
+      display.innerHTML += `<div class="user-msg">${msg}</div>`;
+      input.value = '';
+      display.scrollTop = display.scrollHeight;
+
+      const loadingId = "loading-" + Date.now();
+      display.innerHTML += `<div class="ai-msg" id="${loadingId}">Thinking...</div>`;
+
+      const res = await callGas({ action: "chatWithAI", userMessage: msg });
+      document.getElementById(loadingId).innerText = res;
+      display.scrollTop = display.scrollHeight;
+      speak(res);
+    }
+
+    function speak(text) {
+      const uttr = new SpeechSynthesisUtterance(text.split('【')[0]);
+      uttr.lang = 'en-US';
+      window.speechSynthesis.speak(uttr);
+    }
+
+    function toggleChat() {
+      const win = document.getElementById('chat-window');
+      const isClosed = win.style.height === '40px';
+      win.style.height = isClosed ? '450px' : '40px';
+      document.getElementById('chat-toggle-icon').innerText = isClosed ? '_' : '□';
+    }
+  </script>
+</body>
+</html>
