@@ -3,255 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English Battle RPG</title>
+    <title>English RPG - Genesis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background-color: #020617; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
-        .glass-card { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1.5rem; }
-        
-        /* HPバーの動き */
-        .hp-bar { height: 12px; background: #1e293b; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
-        .hp-fill { height: 100%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-        
-        /* ボス画像 */
-        #boss-container { position: relative; width: 240px; height: 240px; margin: 0 auto; transition: transform 0.1s; }
-        #boss-img { width: 100%; height: 100%; object-fit: cover; border-radius: 1.5rem; border: 3px solid #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.3); }
-        
-        /* ダメージアニメーション */
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-15px); }
-            75% { transform: translateX(15px); }
-        }
-        .damage-shake { animation: shake 0.1s ease-in-out infinite; }
-        
-        @keyframes flashRed {
-            0% { box-shadow: inset 0 0 0px rgba(239, 68, 68, 0); }
-            50% { box-shadow: inset 0 0 100px rgba(239, 68, 68, 0.5); }
-            100% { box-shadow: inset 0 0 0px rgba(239, 68, 68, 0); }
-        }
-        .hurt-effect { animation: flashRed 0.5s ease-out; }
-
-        .btn-attack { background: linear-gradient(135deg, #2563eb, #1d4ed8); transition: all 0.2s; }
-        .btn-attack:active { transform: scale(0.95); }
+        body { background: #020617; color: white; font-family: sans-serif; }
+        .hp-fill { transition: width 0.5s ease; }
+        .shake { animation: shake 0.1s infinite; }
+        @keyframes shake { 0%,100% {transform:translateX(0);} 25% {transform:translateX(-8px);} 75% {transform:translateX(8px);} }
+        .active { display: block; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; }
     </style>
 </head>
-<body class="min-h-screen">
-
-    <div id="flash-overlay" class="fixed inset-0 pointer-events-none z-50"></div>
-
-    <header class="fixed top-0 w-full z-10 bg-slate-900/90 border-b border-white/5 p-3">
+<body class="min-h-screen pb-24">
+    <header class="p-4 bg-slate-900 border-b border-white/10 sticky top-0 z-50">
         <div class="max-w-md mx-auto flex items-center gap-4">
-            <div class="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold italic">LV.<span id="user-level">--</span></div>
-            <div class="flex-1">
-                <div class="hp-bar"><div id="user-hp-bar" class="hp-fill bg-gradient-to-r from-green-400 to-emerald-500" style="width: 100%"></div></div>
-                <div class="flex justify-between text-[10px] mt-1 text-slate-400 font-bold"><span>PLAYER HP</span><span id="user-hp-text">--/--</span></div>
+            <div class="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold">LV.<span id="ulv">--</span></div>
+            <div class="flex-1 bg-slate-800 h-3 rounded-full overflow-hidden">
+                <div id="uhp-b" class="hp-fill bg-green-500 h-full" style="width: 0%"></div>
             </div>
         </div>
     </header>
 
-    <main class="max-w-md mx-auto pt-20 p-4 pb-24">
-        
+    <main class="max-w-md mx-auto p-4">
         <div id="battle-view" class="tab-content active space-y-6">
-            <div class="glass-card p-6 text-center">
-                <div id="boss-container">
-                    <img id="boss-img" src="https://placehold.co/400x400/1e293b/white?text=Waiting..." alt="Boss">
+            <div class="bg-slate-800/50 p-6 rounded-3xl border border-white/10 text-center">
+                <div id="b-container"><img id="b-img" class="w-64 h-64 mx-auto rounded-2xl border-2 border-blue-500 shadow-2xl object-cover" src="" alt=""></div>
+                <h2 id="b-name" class="text-2xl font-black mt-4 uppercase italic">---</h2>
+                <div class="mt-4 bg-slate-900 h-3 rounded-full overflow-hidden">
+                    <div id="bhp-b" class="hp-fill bg-red-600 h-full" style="width: 0%"></div>
                 </div>
-                <h2 id="boss-name" class="text-2xl font-black mt-4 tracking-wider text-white italic uppercase">---</h2>
-                <div class="hp-bar mt-4"><div id="boss-hp-bar" class="hp-fill bg-gradient-to-r from-red-500 to-orange-600" style="width: 100%"></div></div>
-                <div class="text-[10px] text-slate-500 mt-1 font-bold">BOSS VITALITY: <span id="boss-hp-text">--/--</span></div>
             </div>
 
-            <div class="bg-white text-slate-900 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-center">
-                <div id="category-tag" class="inline-block text-[10px] font-black text-blue-600 border-2 border-blue-600 px-2 rounded mb-2">CATEGORY</div>
-                <div id="question-text" class="text-2xl font-bold">問題読み込み中...</div>
+            <div class="bg-white text-slate-900 p-8 rounded-3xl text-center shadow-2xl">
+                <div id="qcat" class="text-[10px] font-bold text-blue-500 border border-blue-500 px-2 rounded inline-block mb-2">CATEGORY</div>
+                <div id="qtext" class="text-2xl font-bold italic">Loading...</div>
             </div>
 
-            <div class="space-y-4">
-                <input type="text" id="answer-input" autocomplete="off" placeholder="答えを入力..." class="w-full p-5 rounded-2xl bg-slate-800/50 border border-white/10 text-center text-xl font-bold focus:ring-4 focus:ring-blue-500/20 outline-none transition-all">
-                <button onclick="submitAnswer()" class="btn-attack w-full py-5 rounded-2xl font-black text-xl tracking-widest shadow-lg shadow-blue-900/20">ATTACK</button>
+            <div class="flex gap-2">
+                <input type="text" id="u-ans" placeholder="答えを入力..." class="flex-1 p-4 rounded-xl bg-slate-800 border border-white/10 outline-none text-xl">
+                <button onclick="attack()" class="bg-blue-600 px-6 py-4 rounded-xl font-bold">ATTACK</button>
             </div>
         </div>
 
         <div id="chat-view" class="tab-content">
-            <div class="glass-card p-4 h-[70vh] flex flex-col">
-                <div id="chat-box" class="flex-1 overflow-y-auto space-y-4 p-2 text-sm"></div>
-                <div class="mt-4 flex gap-2 bg-slate-800 rounded-full p-1 pr-4">
-                    <input type="text" id="chat-input" class="flex-1 bg-transparent p-3 pl-5 outline-none" placeholder="AI講師と英語で話そう...">
-                    <button onclick="sendChatMessage()" class="text-blue-500 text-xl px-2"><i class="fas fa-paper-plane"></i></button>
+            <div class="bg-slate-800/50 p-4 rounded-3xl h-[65vh] flex flex-col border border-white/10">
+                <div id="c-box" class="flex-1 overflow-y-auto space-y-4 p-2 text-sm"></div>
+                <div class="mt-4 flex gap-2">
+                    <button onclick="startVoice()" id="mic" class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center"><i class="fas fa-microphone"></i></button>
+                    <input type="text" id="c-in" class="flex-1 bg-slate-700 p-3 rounded-full outline-none" placeholder="English only...">
+                    <button onclick="sendChat()" class="text-blue-500 px-2"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
         </div>
-
     </main>
 
-    <nav class="fixed bottom-0 w-full bg-slate-900/95 border-t border-white/5 p-4 backdrop-blur-md">
-        <div class="max-w-md mx-auto flex justify-around">
-            <button onclick="switchView('battle')" id="nav-battle" class="flex flex-col items-center gap-1 text-blue-500">
-                <i class="fas fa-sword text-2xl"></i><span class="text-[9px] font-bold">BATTLE</span>
-            </button>
-            <button onclick="switchView('chat')" id="nav-chat" class="flex flex-col items-center gap-1 text-slate-500">
-                <i class="fas fa-comment-alt text-2xl"></i><span class="text-[9px] font-bold">CHAT</span>
-            </button>
-        </div>
+    <nav class="fixed bottom-0 w-full bg-slate-900 p-4 border-t border-white/10 flex justify-around">
+        <button onclick="show('battle')" class="flex flex-col items-center text-blue-500"><i class="fas fa-sword text-xl"></i><span class="text-[10px]">BATTLE</span></button>
+        <button onclick="show('chat')" class="flex flex-col items-center text-slate-400"><i class="fas fa-comment text-xl"></i><span class="text-[10px]">CHAT</span></button>
     </nav>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbw1S3fAhyi5I65yawUZLwJRX-yK3hKFjdUu8JWJRmffww8TrHQ9ac9nVW52b39DAL6S2w/exec"; // ★ここに新しいURLを貼る
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwPzX2zD55eQqQn2yUWDgz84CNRTY-_dXOYugB6jGAau6SvTuK8PBGfc12s8YLI9xcb-g/exec";
 
-        // 初期データ読み込み
-        async function loadGameData() {
-            const res = await fetch(GAS_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: "getInitialData" })
-            });
-            const data = await res.json();
-            
-            // プレイヤー情報更新
-            document.getElementById('user-level').innerText = data.user.level;
-            document.getElementById('user-hp-bar').style.width = (data.user.hp / data.user.maxHp * 100) + "%";
-            document.getElementById('user-hp-text').innerText = `${data.user.hp}/${data.user.maxHp}`;
-            
-            // ボス情報更新
-            document.getElementById('boss-name').innerText = data.boss.name;
-            document.getElementById('boss-img').src = data.boss.image;
-            document.getElementById('boss-hp-bar').style.width = (data.boss.hp / data.boss.maxHp * 100) + "%";
-            document.getElementById('boss-hp-text').innerText = `${data.boss.hp}/${data.boss.maxHp}`;
-            
-            // 問題更新
-            document.getElementById('question-text').innerText = data.question.text;
-            document.getElementById('category-tag').innerText = data.question.category;
-            window.currentQuestionId = data.question.id;
+        async function load() {
+            try {
+                const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "getInitialData" }) });
+                const d = await res.json();
+                document.getElementById('ulv').innerText = d.user.level;
+                document.getElementById('uhp-b').style.width = (d.user.hp/d.user.maxHp*100) + "%";
+                document.getElementById('b-name').innerText = d.boss.name;
+                document.getElementById('b-img').src = d.boss.image;
+                document.getElementById('bhp-b').style.width = (d.boss.hp/d.boss.maxHp*100) + "%";
+                document.getElementById('qtext').innerText = d.question.text;
+                document.getElementById('qcat').innerText = d.question.category;
+                window.qid = d.question.id;
+            } catch(e) { alert("通信エラー: " + e); }
         }
 
-        // 回答送信
-        async function submitAnswer() {
-            const ans = document.getElementById('answer-input').value;
-            if (!ans) return;
-
-            const res = await fetch(GAS_URL, {
-                method: "POST",
-                body: JSON.stringify({
-                    action: "checkAnswer",
-                    userAnswer: ans,
-                    questionId: window.currentQuestionId
-                })
-            });
-            const result = await res.json();
-
-            if (result.isCorrect) {
-                // 正解：ボスを揺らす
-                const container = document.getElementById('boss-container');
-                container.classList.add('damage-shake');
-                setTimeout(() => container.classList.remove('damage-shake'), 500);
-            } else {
-                // 不正解：画面を赤く光らせる
-                const flash = document.getElementById('flash-overlay');
-                flash.classList.add('hurt-effect');
-                setTimeout(() => flash.classList.remove('hurt-effect'), 500);
+        async function attack() {
+            const a = document.getElementById('u-ans').value;
+            if(!a) return;
+            const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "checkAnswer", userAnswer: a, questionId: window.qid }) });
+            const r = await res.json();
+            if(r.isCorrect) {
+                document.getElementById('b-container').classList.add('shake');
+                setTimeout(()=>document.getElementById('b-container').classList.remove('shake'), 500);
             }
-
-            alert(result.message);
-            document.getElementById('answer-input').value = "";
-            loadGameData(); // 次の問題へ
+            alert(r.msg);
+            document.getElementById('u-ans').value = "";
+            load();
         }
 
-        // 画面切り替え
-        function switchView(view) {
-            document.querySelectorAll('.tab-content').forEach(v => v.classList.remove('active'));
-            document.getElementById(view + '-view').classList.add('active');
-            
-            document.getElementById('nav-battle').classList.replace('text-blue-500', 'text-slate-500');
-            document.getElementById('nav-chat').classList.replace('text-blue-500', 'text-slate-500');
-            document.getElementById('nav-' + view).classList.replace('text-slate-500', 'text-blue-500');
+        function startVoice() {
+            const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            rec.lang = 'en-US';
+            rec.start();
+            rec.onresult = (e) => { document.getElementById('c-in').value = e.results[0][0].transcript; sendChat(); };
         }
 
-        // チャット送信
-        async function sendChatMessage() {
-            const input = document.getElementById('chat-input');
-            const msg = input.value;
-            if(!msg) return;
-
-            const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML += `<div class="flex justify-end"><div class="bg-blue-600 p-3 rounded-2xl rounded-tr-none max-w-[80%]">${msg}</div></div>`;
-            input.value = "";
-
-            const res = await fetch(GAS_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: "chatWithAI", userMessage: msg })
-            });
-            const reply = await res.json();
-            chatBox.innerHTML += `<div class="flex justify-start"><div class="bg-slate-700 p-3 rounded-2xl rounded-tl-none max-w-[80%] whitespace-pre-wrap">${reply}</div></div>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
+        async function sendChat() {
+            const i = document.getElementById('c-in');
+            const msg = i.value; if(!msg) return;
+            const box = document.getElementById('c-box');
+            box.innerHTML += `<div class="text-right"><span class="bg-blue-600 p-2 rounded-lg inline-block">${msg}</span></div>`;
+            i.value = "Thinking...";
+            const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "chatWithAI", userMessage: msg }) });
+            const r = await res.json();
+            i.value = "";
+            box.innerHTML += `<div class="text-left"><span class="bg-slate-700 p-2 rounded-lg inline-block">${r}</span></div>`;
+            box.scrollTop = box.scrollHeight;
+            const s = new SpeechSynthesisUtterance(r.split('【')[0]);
+            s.lang = 'en-US'; speechSynthesis.speak(s);
         }
 
-        window.onload = loadGameData;
+        function show(v) {
+            document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+            document.getElementById(v + '-view').classList.add('active');
+        }
+
+        window.onload = load;
     </script>
-<div class="mt-4 flex gap-2 bg-slate-800 rounded-full p-1 pr-4">
-    <button onclick="startSpeechRecognition()" id="mic-btn" class="w-12 h-12 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors">
-        <i class="fas fa-microphone"></i>
-    </button>
-    <input type="text" id="chat-input" class="flex-1 bg-transparent p-3 outline-none" placeholder="AI講師と英語で話そう...">
-    <button onclick="sendChatMessage()" class="text-blue-500 text-xl px-2"><i class="fas fa-paper-plane"></i></button>
-</div>
-
-<script>
-// --- 音声認識機能の復活 ---
-const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-recognition.lang = 'en-US'; // 英会話なので英語設定
-recognition.interimResults = false;
-
-function startSpeechRecognition() {
-    const btn = document.getElementById('mic-btn');
-    btn.classList.add('text-red-500', 'animate-pulse');
-    recognition.start();
-}
-
-recognition.onresult = (event) => {
-    const speechResult = event.results[0][0].transcript;
-    document.getElementById('chat-input').value = speechResult;
-    document.getElementById('mic-btn').classList.remove('text-red-500', 'animate-pulse');
-    sendChatMessage(); // 認識したら自動送信
-};
-
-recognition.onerror = () => {
-    document.getElementById('mic-btn').classList.remove('text-red-500', 'animate-pulse');
-    alert("音声認識に失敗しました。");
-};
-
-// --- ボス撃破後の遷移処理を追加 ---
-async function submitAnswer() {
-    const ans = document.getElementById('answer-input').value;
-    if (!ans) return;
-
-    const res = await fetch(GAS_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "checkAnswer", userAnswer: ans, questionId: window.currentQuestionId })
-    });
-    const result = await res.json();
-
-    if (result.isCorrect) {
-        document.getElementById('boss-container').classList.add('damage-shake');
-        setTimeout(() => document.getElementById('boss-container').classList.remove('damage-shake'), 500);
-    } else {
-        document.getElementById('flash-overlay').classList.add('hurt-effect');
-        setTimeout(() => document.getElementById('flash-overlay').classList.remove('hurt-effect'), 500);
-    }
-
-    alert(result.message);
-    document.getElementById('answer-input').value = "";
-
-    if (result.bossKilled) {
-        // ボスを倒したなら、特別な演出を入れてから再読み込み
-        confettiEffect(); // お祝い演出（もしあれば）
-        loadGameData(); // ここで新しいボスが読み込まれる
-    } else {
-        loadGameData(); // 通常の次の問題へ
-    }
-}
-</script>
 </body>
 </html>
