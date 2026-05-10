@@ -100,7 +100,7 @@
     </nav>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbyKt6kOR9Ym1Qvsx55lL4_-Qt1PK7NqQ1q0Oyxv2LeFABwH2TZ-IIbiEN6NPWorU7550w/exec"; // ★ここに新しいURLを貼る
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbw1S3fAhyi5I65yawUZLwJRX-yK3hKFjdUu8JWJRmffww8TrHQ9ac9nVW52b39DAL6S2w/exec"; // ★ここに新しいURLを貼る
 
         // 初期データ読み込み
         async function loadGameData() {
@@ -190,5 +190,68 @@
 
         window.onload = loadGameData;
     </script>
+<div class="mt-4 flex gap-2 bg-slate-800 rounded-full p-1 pr-4">
+    <button onclick="startSpeechRecognition()" id="mic-btn" class="w-12 h-12 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors">
+        <i class="fas fa-microphone"></i>
+    </button>
+    <input type="text" id="chat-input" class="flex-1 bg-transparent p-3 outline-none" placeholder="AI講師と英語で話そう...">
+    <button onclick="sendChatMessage()" class="text-blue-500 text-xl px-2"><i class="fas fa-paper-plane"></i></button>
+</div>
+
+<script>
+// --- 音声認識機能の復活 ---
+const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+recognition.lang = 'en-US'; // 英会話なので英語設定
+recognition.interimResults = false;
+
+function startSpeechRecognition() {
+    const btn = document.getElementById('mic-btn');
+    btn.classList.add('text-red-500', 'animate-pulse');
+    recognition.start();
+}
+
+recognition.onresult = (event) => {
+    const speechResult = event.results[0][0].transcript;
+    document.getElementById('chat-input').value = speechResult;
+    document.getElementById('mic-btn').classList.remove('text-red-500', 'animate-pulse');
+    sendChatMessage(); // 認識したら自動送信
+};
+
+recognition.onerror = () => {
+    document.getElementById('mic-btn').classList.remove('text-red-500', 'animate-pulse');
+    alert("音声認識に失敗しました。");
+};
+
+// --- ボス撃破後の遷移処理を追加 ---
+async function submitAnswer() {
+    const ans = document.getElementById('answer-input').value;
+    if (!ans) return;
+
+    const res = await fetch(GAS_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "checkAnswer", userAnswer: ans, questionId: window.currentQuestionId })
+    });
+    const result = await res.json();
+
+    if (result.isCorrect) {
+        document.getElementById('boss-container').classList.add('damage-shake');
+        setTimeout(() => document.getElementById('boss-container').classList.remove('damage-shake'), 500);
+    } else {
+        document.getElementById('flash-overlay').classList.add('hurt-effect');
+        setTimeout(() => document.getElementById('flash-overlay').classList.remove('hurt-effect'), 500);
+    }
+
+    alert(result.message);
+    document.getElementById('answer-input').value = "";
+
+    if (result.bossKilled) {
+        // ボスを倒したなら、特別な演出を入れてから再読み込み
+        confettiEffect(); // お祝い演出（もしあれば）
+        loadGameData(); // ここで新しいボスが読み込まれる
+    } else {
+        loadGameData(); // 通常の次の問題へ
+    }
+}
+</script>
 </body>
 </html>
