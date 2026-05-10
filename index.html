@@ -1,191 +1,174 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* 全体背景とフォント */
-    body { background-color: #0f172a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding-bottom: 80px; }
-    
-    /* ビューの切り替えアニメーション */
-    .view-section { display: none; width: 100%; max-width: 450px; margin: 0 auto; animation: fadeIn 0.3s ease-in-out; }
-    .view-section.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-    /* ナビゲーションバー */
-    .nav-bar { position: fixed; bottom: 0; left: 0; w-full; background: #1e293b; border-top: 2px solid #334155; display: flex; justify-content: space-around; padding: 12px; z-index: 1000; width: 100%; }
-    .nav-item { display: flex; flex-direction: column; align-items: center; color: #94a3b8; font-size: 10px; cursor: pointer; transition: 0.2s; }
-    .nav-item.active { color: #00f2ff; }
-    .nav-icon { font-size: 24px; margin-bottom: 4px; }
-
-    /* チャット表示エリアの調整 */
-    .chat-container { height: calc(100vh - 180px); display: flex; flex-direction: column; background: #050a14; border-radius: 15px; border: 1px solid #00f2ff; overflow: hidden; }
-    .chat-display { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    .ai-msg { background: #1e293b; color: #00f2ff; align-self: flex-start; border: 1px solid #00f2ff; padding: 10px; border-radius: 10px; font-size: 14px; max-width: 85%; }
-    .user-msg { background: #00f2ff; color: #000; align-self: flex-end; padding: 10px; border-radius: 10px; font-size: 14px; max-width: 85%; font-weight: 500; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Battle RPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; }
+        .hp-bar { height: 10px; background: #334155; border-radius: 5px; overflow: hidden; }
+        .hp-fill { height: 100%; transition: width 0.5s ease-in-out; }
+    </style>
 </head>
-<body class="text-white">
+<body class="min-h-screen pb-20">
 
-  <header class="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md p-4 border-b border-blue-900 mb-4">
-    <div class="flex items-center justify-between max-w-md mx-auto">
-      <div id="level-badge" class="bg-blue-600 px-3 py-1 rounded-lg font-black italic text-xs">Lv.--</div>
-      <div class="flex-1 px-4">
-        <div id="userName" class="text-[10px] text-blue-300 font-bold mb-1 uppercase tracking-tighter">---</div>
-        <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden">
-          <div id="xpBar" class="bg-cyan-400 h-full transition-all" style="width: 0%"></div>
+    <div class="fixed top-0 w-full z-10 bg-slate-900/80 p-2 border-b border-white/10">
+        <div class="max-w-md mx-auto flex items-center gap-4">
+            <div class="bg-blue-600 px-2 py-1 rounded text-xs font-bold">Lv.<span id="user-level">--</span></div>
+            <div class="flex-1">
+                <div class="hp-bar"><div id="user-hp-bar" class="hp-fill bg-green-500" style="width: 0%"></div></div>
+            </div>
         </div>
-      </div>
-    </div>
-  </header>
-
-  <section id="view-battle" class="view-section active p-4 space-y-4">
-    <div class="bg-slate-800 rounded-2xl p-6 border-4 border-red-900 shadow-lg">
-      <h2 id="bossName" class="text-center text-xl font-black mb-3">Loading...</h2>
-      <div class="w-full bg-slate-950 h-5 rounded-full overflow-hidden border border-slate-700">
-        <div id="bossHPBar" class="bg-gradient-to-r from-red-600 to-orange-400 h-full transition-all duration-700" style="width: 100%"></div>
-      </div>
     </div>
 
-    <div class="bg-white rounded-2xl p-6 text-center shadow-2xl">
-      <div id="currentCategoryBadge" class="inline-block px-2 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold rounded mb-2 uppercase">---</div>
-      <p id="questionText" class="text-3xl font-black text-slate-800 mb-6 italic leading-tight">...</p>
-      <input type="hidden" id="currentQuestionId">
-      <input type="text" id="answerInput" class="w-full p-4 rounded-xl border-4 border-slate-200 text-slate-800 mb-4 text-center text-xl font-bold outline-none" placeholder="答えを入力..." autocomplete="off">
-      <button onclick="submitAnswer()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-xl shadow-xl active:scale-95 transition-transform">ATTACK</button>
-      <p id="resultMessage" class="mt-3 font-bold text-slate-500 text-sm h-5"></p>
-    </div>
-  </section>
+    <main class="max-w-md mx-auto pt-16 p-4">
+        <div id="battle-view" class="tab-content active">
+            <div class="glass-card p-6 mb-4 text-center">
+                <h2 id="boss-name" class="text-xl font-bold mb-2">Loading...</h2>
+                <div class="hp-bar mb-1"><div id="boss-hp-bar" class="hp-fill bg-red-500" style="width: 0%"></div></div>
+                <div class="text-right text-xs text-slate-400">HP: <span id="boss-hp-text">--/--</span></div>
+            </div>
 
-  <section id="view-chat" class="view-section p-4">
-    <div class="chat-container">
-      <div class="bg-gradient-to-r from-cyan-600 to-blue-600 p-3 font-bold text-center text-sm">🤖 AI ENGLISH TUTOR</div>
-      <div id="chat-display" class="chat-display">
-        <div class="ai-msg">Hello! Let's practice English! Press 🎤 to speak.</div>
-      </div>
-      <div class="p-3 bg-slate-900 flex gap-2 border-t border-slate-700">
-        <button onclick="startListening()" id="mic-btn" class="bg-slate-800 p-2 rounded-lg text-xl">🎤</button>
-        <input type="text" id="chat-input" class="flex-1 bg-slate-800 border-none rounded-lg p-2 text-sm text-white focus:ring-1 focus:ring-cyan-500 outline-none" placeholder="English...">
-        <button onclick="sendChat()" class="bg-cyan-500 text-black px-4 py-2 rounded-lg font-bold text-sm">Send</button>
-      </div>
-    </div>
-  </section>
+            <div class="bg-white text-slate-900 rounded-xl p-6 shadow-2xl mb-4 min-h-[150px] flex flex-col justify-center items-center text-center">
+                <div id="category-tag" class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded mb-2">---</div>
+                <div id="question-text" class="text-2xl font-bold">...</div>
+            </div>
 
-  <section id="view-fortune" class="view-section p-4">
-    <div class="bg-slate-800 rounded-xl p-6 border border-cyan-500 shadow-cyan-900/20 shadow-lg text-center">
-      <h3 class="text-cyan-400 font-bold text-lg mb-4 tracking-widest">🔮 AI FORTUNE</h3>
-      <button onclick="getAIUpdate()" class="bg-cyan-900 hover:bg-cyan-800 text-cyan-100 px-6 py-3 rounded-full border border-cyan-400 transition-colors mb-6">未来を占う</button>
-      <div id="aiResult" class="text-sm text-slate-300 italic leading-relaxed text-left bg-slate-900/50 p-4 rounded-lg min-h-[150px]">AIが君の実力を分析するぞ...</div>
-    </div>
-  </section>
+            <div class="space-y-3">
+                <input type="text" id="answer-input" placeholder="答えを入力..." class="w-full p-4 rounded-xl bg-slate-800 border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-xl">
+                <button onclick="submitAnswer()" id="attack-btn" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold text-xl transition-all active:scale-95 shadow-lg">ATTACK</button>
+            </div>
+        </div>
 
-  <section id="view-menu" class="view-section p-4">
-    <div class="bg-slate-800 rounded-xl p-6 space-y-6">
-      <h3 class="text-white font-bold border-b border-slate-700 pb-2">SETTINGS</h3>
-      <div>
-        <label class="text-xs text-slate-400 block mb-2 uppercase tracking-wide">Learning Mode</label>
-        <select id="categorySelect" onchange="refreshData()" class="w-full bg-slate-900 text-white p-3 rounded-lg border border-slate-600 outline-none">
-          <option value="すべて">すべて</option>
-          <option value="英検3級">英検3級</option>
-          <option value="TOEIC">TOEIC</option>
-        </select>
-      </div>
-      <div class="pt-4 text-center">
-        <p class="text-[10px] text-slate-500">English RPG App v2.0</p>
-      </div>
-    </div>
-  </section>
+        <div id="chat-view" class="tab-content">
+            <div class="glass-card p-4 mb-4 h-[60vh] flex flex-col">
+                <div id="chat-box" class="flex-1 overflow-y-auto space-y-4 mb-4 p-2 text-sm"></div>
+                <div class="flex gap-2">
+                    <input type="text" id="chat-input" class="flex-1 bg-slate-800 rounded-lg p-3 outline-none" placeholder="AIに英語で話しかけよう">
+                    <button onclick="sendChatMessage()" class="bg-blue-600 p-3 rounded-lg"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
 
-  <nav class="nav-bar">
-    <div onclick="switchView('battle', this)" class="nav-item active">
-      <span class="nav-icon">⚔️</span><span>BATTLE</span>
-    </div>
-    <div onclick="switchView('chat', this)" class="nav-item">
-      <span class="nav-icon">🤖</span><span>CHAT</span>
-    </div>
-    <div onclick="switchView('fortune', this)" class="nav-item">
-      <span class="nav-icon">🔮</span><span>FORTUNE</span>
-    </div>
-    <div onclick="switchView('menu', this)" class="nav-item">
-      <span class="nav-icon">⚙️</span><span>MENU</span>
-    </div>
-  </nav>
+        <div id="fortune-view" class="tab-content">
+            <div class="glass-card p-6 text-center">
+                <h2 class="text-2xl font-bold mb-4">AI攻略能力予測</h2>
+                <div id="fortune-result" class="bg-slate-800/50 p-4 rounded-lg min-h-[100px] mb-4 flex items-center justify-center italic text-slate-300">
+                    「PREDICT」ボタンを押すとAIがあなたのステータスを分析します
+                </div>
+                <button onclick="predictFortune()" id="predict-btn" class="w-full bg-purple-600 py-4 rounded-xl font-bold">PREDICT</button>
+            </div>
+        </div>
+    </main>
 
-  <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwBJk9EId4qETuAFVJK7rKXVbjIue0pDqJe6S_yuAyFgmLJIYrw088KeqiHQAZggs0DxQ/exec";
+    <nav class="fixed bottom-0 w-full bg-slate-900 border-t border-white/10 p-2">
+        <div class="max-w-md mx-auto flex justify-around items-center">
+            <button onclick="switchView('battle')" class="flex flex-col items-center gap-1 text-blue-400">
+                <i class="fas fa-swords text-xl"></i><span class="text-[10px]">BATTLE</span>
+            </button>
+            <button onclick="switchView('chat')" class="flex flex-col items-center gap-1 text-slate-400">
+                <i class="fas fa-robot text-xl"></i><span class="text-[10px]">CHAT</span>
+            </button>
+            <button onclick="switchView('fortune')" class="flex flex-col items-center gap-1 text-slate-400">
+                <i class="fas fa-crystal-ball text-xl"></i><span class="text-[10px]">FORTUNE</span>
+            </button>
+        </div>
+    </nav>
 
-    // --- ビュー切り替えロジック ---
-    function switchView(viewId, el) {
-      document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-      document.getElementById('view-' + viewId).classList.add('active');
-      el.classList.add('active');
-    }
+    <script>
+        // ★ここにあなたのGASのURLを貼ってください
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwBJk9EId4qETuAFVJK7rKXVbjIue0pDqJe6S_yuAyFgmLJIYrw088KeqiHQAZggs0DxQ/exec";
 
-    // --- 通信共通関数 ---
-    async function callGas(payload) {
-      const response = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
-      return await response.json();
-    }
+        let currentQuestionId = "";
+        let currentCategory = "すべて";
 
-    // --- RPGロジック (既存機能の維持) ---
-    window.onload = () => refreshData();
+        // 画面切り替え機能（これがエラーの正体でした！）
+        function switchView(viewName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewName + '-view').classList.add('active');
+            
+            // アイコンの色変更
+            document.querySelectorAll('nav button').forEach(btn => btn.classList.replace('text-blue-400', 'text-slate-400'));
+            event.currentTarget.classList.replace('text-slate-400', 'text-blue-400');
+        }
 
-    async function refreshData() {
-      const category = document.getElementById('categorySelect').value;
-      const data = await callGas({ action: "getInitialData", category: category });
-      updateUI(data);
-    }
+        // 初期データ取得
+        async function loadGameData() {
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "getInitialData", category: currentCategory })
+                });
+                const data = await res.json();
+                updateUI(data);
+            } catch (e) { console.error(e); }
+        }
 
-    function updateUI(data) {
-      document.getElementById('userName').innerText = data.user.name;
-      document.getElementById('level-badge').innerText = "Lv." + data.user.level;
-      document.getElementById('xpBar').style.width = data.user.xp + "%";
-      document.getElementById('bossName').innerText = data.boss.name;
-      document.getElementById('bossHPBar').style.width = (data.boss.hp / data.boss.maxHp * 100) + "%";
-      document.getElementById('questionText').innerText = data.question.text;
-      document.getElementById('currentQuestionId').value = data.question.id;
-      document.getElementById('currentCategoryBadge').innerText = data.question.category;
-    }
+        function updateUI(data) {
+            document.getElementById('user-level').innerText = data.user.level;
+            document.getElementById('user-hp-bar').style.width = (data.user.hp / data.user.maxHp * 100) + "%";
+            document.getElementById('boss-name').innerText = data.boss.name;
+            document.getElementById('boss-hp-bar').style.width = (data.boss.hp / data.boss.maxHp * 100) + "%";
+            document.getElementById('boss-hp-text').innerText = `${data.boss.hp}/${data.boss.maxHp}`;
+            document.getElementById('question-text').innerText = data.question.text;
+            document.getElementById('category-tag').innerText = data.question.category;
+            currentQuestionId = data.question.id;
+        }
 
-    async function submitAnswer() {
-      const val = document.getElementById('answerInput').value;
-      const qId = document.getElementById('currentQuestionId').value;
-      const cat = document.getElementById('categorySelect').value;
-      if(!val) return;
-      const res = await callGas({ action: "checkAnswer", userAnswer: val, questionId: qId, currentCategory: cat });
-      document.getElementById('resultMessage').innerText = res.message;
-      if(res.success) { 
-        document.getElementById('answerInput').value = ""; 
-        refreshData(); 
-      }
-    }
+        async function submitAnswer() {
+            const val = document.getElementById('answer-input').value;
+            if(!val) return;
+            document.getElementById('attack-btn').disabled = true;
+            document.getElementById('attack-btn').innerText = "ATTACKING...";
 
-    async function getAIUpdate() {
-      const display = document.getElementById('aiResult');
-      display.innerText = "水晶玉を覗き込んでいる...";
-      const res = await callGas({ action: "onPredictButtonClick" });
-      display.innerText = res;
-    }
+            const res = await fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "checkAnswer", userAnswer: val, questionId: currentQuestionId, currentCategory: currentCategory })
+            });
+            const result = await res.json();
+            alert(result.message);
+            document.getElementById('answer-input').value = "";
+            loadGameData();
+            document.getElementById('attack-btn').disabled = false;
+            document.getElementById('attack-btn').innerText = "ATTACK";
+        }
 
-    // --- チャット・音声認識 ---
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value;
+            if(!msg) return;
+            addMessage("You", msg);
+            input.value = "";
+            const res = await fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "chatWithAI", userMessage: msg })
+            });
+            const reply = await res.json();
+            addMessage("AI Tutor", reply);
+        }
 
-    async function startListening() {
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        document.getElementById('mic-btn').innerText = "👂";
-        recognition.start();
-      } catch (e) { alert("Mic error: " + e.message); }
-    }
+        function addMessage(sender, text) {
+            const box = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            div.className = sender === "You" ? "text-right" : "text-left";
+            div.innerHTML = `<div class="inline-block p-2 rounded-lg ${sender === "You" ? "bg-blue-600" : "bg-slate-700"}">${text}</div>`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
 
-    recognition.onresult = (e) => {
-      document.getElementById('chat-input').value = e.results[0][0].transcript;
-      sendChat();
-    };
-    recognition.onend = () => { document.getElementById('mic-btn').innerText = "🎤"; };
+        async function predictFortune() {
+            document.getElementById('fortune-result').innerText = "Analyzing...";
+            const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "onPredictButtonClick" }) });
+            const result = await res.json();
+            document.getElementById('fortune-result').innerText = result;
+        }
 
-    async function sendChat() {
-      const input =
+        window.onload = loadGameData;
+    </script>
+</body>
+</html>
