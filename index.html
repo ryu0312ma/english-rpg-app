@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English RPG - Genesis</title>
+    <title>English RPG - Reborn</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background: #020617; color: white; font-family: sans-serif; }
+        body { background: #020617; color: white; font-family: sans-serif; overflow-x: hidden; }
         .hp-fill { transition: width 0.5s ease; }
-        .shake { animation: shake 0.1s infinite; }
-        @keyframes shake { 0%,100% {transform:translateX(0);} 25% {transform:translateX(-8px);} 75% {transform:translateX(8px);} }
-        .active { display: block; }
+        .shake { animation: shake 0.2s; }
+        @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-10px);} 75%{transform:translateX(10px);} }
         .tab-content { display: none; }
+        .active { display: block; }
     </style>
 </head>
 <body class="min-h-screen pb-24">
@@ -27,8 +27,8 @@
 
     <main class="max-w-md mx-auto p-4">
         <div id="battle-view" class="tab-content active space-y-6">
-            <div class="bg-slate-800/50 p-6 rounded-3xl border border-white/10 text-center">
-                <div id="b-container"><img id="b-img" class="w-64 h-64 mx-auto rounded-2xl border-2 border-blue-500 shadow-2xl object-cover" src="" alt=""></div>
+            <div id="b-card" class="bg-slate-800/50 p-6 rounded-3xl border border-white/10 text-center">
+                <img id="b-img" class="w-64 h-64 mx-auto rounded-2xl border-2 border-blue-500 shadow-2xl object-cover" src="" alt="Boss">
                 <h2 id="b-name" class="text-2xl font-black mt-4 uppercase italic">---</h2>
                 <div class="mt-4 bg-slate-900 h-3 rounded-full overflow-hidden">
                     <div id="bhp-b" class="hp-fill bg-red-600 h-full" style="width: 0%"></div>
@@ -41,35 +41,37 @@
             </div>
 
             <div class="flex gap-2">
-                <input type="text" id="u-ans" placeholder="答えを入力..." class="flex-1 p-4 rounded-xl bg-slate-800 border border-white/10 outline-none text-xl">
+                <input type="text" id="ans" placeholder="答えを入力..." class="flex-1 p-4 rounded-xl bg-slate-800 border border-white/10 outline-none text-xl">
                 <button onclick="attack()" class="bg-blue-600 px-6 py-4 rounded-xl font-bold">ATTACK</button>
             </div>
         </div>
 
         <div id="chat-view" class="tab-content">
             <div class="bg-slate-800/50 p-4 rounded-3xl h-[65vh] flex flex-col border border-white/10">
-                <div id="c-box" class="flex-1 overflow-y-auto space-y-4 p-2 text-sm"></div>
+                <div id="cbox" class="flex-1 overflow-y-auto space-y-4 p-2 text-sm"></div>
                 <div class="mt-4 flex gap-2">
-                    <button onclick="startVoice()" id="mic" class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center"><i class="fas fa-microphone"></i></button>
-                    <input type="text" id="c-in" class="flex-1 bg-slate-700 p-3 rounded-full outline-none" placeholder="English only...">
-                    <button onclick="sendChat()" class="text-blue-500 px-2"><i class="fas fa-paper-plane"></i></button>
+                    <button onclick="startVoice()" id="mic" class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center"><i class="fas fa-microphone text-xl"></i></button>
+                    <input type="text" id="cin" class="flex-1 bg-slate-700 p-3 rounded-full outline-none" placeholder="Talk in English...">
+                    <button onclick="sendChat()" class="text-blue-500 px-2 text-xl"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
         </div>
     </main>
 
     <nav class="fixed bottom-0 w-full bg-slate-900 p-4 border-t border-white/10 flex justify-around">
-        <button onclick="show('battle')" class="flex flex-col items-center text-blue-500"><i class="fas fa-sword text-xl"></i><span class="text-[10px]">BATTLE</span></button>
-        <button onclick="show('chat')" class="flex flex-col items-center text-slate-400"><i class="fas fa-comment text-xl"></i><span class="text-[10px]">CHAT</span></button>
+        <button onclick="switchView('battle')" id="btn-battle" class="flex flex-col items-center text-blue-500"><i class="fas fa-sword text-xl"></i><span class="text-[10px]">BATTLE</span></button>
+        <button onclick="switchView('chat')" id="btn-chat" class="flex flex-col items-center text-slate-400"><i class="fas fa-comment text-xl"></i><span class="text-[10px]">CHAT</span></button>
     </nav>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbwPzX2zD55eQqQn2yUWDgz84CNRTY-_dXOYugB6jGAau6SvTuK8PBGfc12s8YLI9xcb-g/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycby82wh7hTGjjupwRT2RtKaUWNZTlSoXET007bBadJm-HkSFn_2_kQrLyCGMbz_Tw1kNBg/exec"; // ★ここに新しいURLを貼る
 
         async function load() {
             try {
                 const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "getInitialData" }) });
                 const d = await res.json();
+                if(d.error) throw new Error(d.error);
+                
                 document.getElementById('ulv').innerText = d.user.level;
                 document.getElementById('uhp-b').style.width = (d.user.hp/d.user.maxHp*100) + "%";
                 document.getElementById('b-name').innerText = d.boss.name;
@@ -78,48 +80,62 @@
                 document.getElementById('qtext').innerText = d.question.text;
                 document.getElementById('qcat').innerText = d.question.category;
                 window.qid = d.question.id;
-            } catch(e) { alert("通信エラー: " + e); }
+            } catch(e) { 
+                console.error(e);
+                alert("データの読み込みに失敗しました。GASのURLとスプレッドシートのシート名を確認してください。"); 
+            }
         }
 
         async function attack() {
-            const a = document.getElementById('u-ans').value;
+            const a = document.getElementById('ans').value;
             if(!a) return;
             const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "checkAnswer", userAnswer: a, questionId: window.qid }) });
             const r = await res.json();
+            
             if(r.isCorrect) {
-                document.getElementById('b-container').classList.add('shake');
-                setTimeout(()=>document.getElementById('b-container').classList.remove('shake'), 500);
+                document.getElementById('b-card').classList.add('shake');
+                setTimeout(()=>document.getElementById('b-card').classList.remove('shake'), 500);
             }
             alert(r.msg);
-            document.getElementById('u-ans').value = "";
+            document.getElementById('ans').value = "";
             load();
+        }
+
+        function switchView(v) {
+            document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+            document.getElementById(v + '-view').classList.add('active');
+            // アイコンの色変更
+            document.getElementById('btn-battle').classList.replace('text-blue-500', 'text-slate-400');
+            document.getElementById('btn-chat').classList.replace('text-blue-500', 'text-slate-400');
+            document.getElementById('btn-' + v).classList.replace('text-slate-400', 'text-blue-500');
         }
 
         function startVoice() {
             const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
             rec.lang = 'en-US';
+            document.getElementById('mic').classList.add('text-red-500');
             rec.start();
-            rec.onresult = (e) => { document.getElementById('c-in').value = e.results[0][0].transcript; sendChat(); };
+            rec.onresult = (e) => {
+                document.getElementById('cin').value = e.results[0][0].transcript;
+                document.getElementById('mic').classList.remove('text-red-500');
+                sendChat();
+            };
         }
 
         async function sendChat() {
-            const i = document.getElementById('c-in');
+            const i = document.getElementById('cin');
             const msg = i.value; if(!msg) return;
-            const box = document.getElementById('c-box');
-            box.innerHTML += `<div class="text-right"><span class="bg-blue-600 p-2 rounded-lg inline-block">${msg}</span></div>`;
+            const box = document.getElementById('cbox');
+            box.innerHTML += `<div class="text-right"><span class="bg-blue-600 p-2 rounded-lg inline-block shadow-lg">${msg}</span></div>`;
             i.value = "Thinking...";
             const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "chatWithAI", userMessage: msg }) });
             const r = await res.json();
             i.value = "";
-            box.innerHTML += `<div class="text-left"><span class="bg-slate-700 p-2 rounded-lg inline-block">${r}</span></div>`;
+            box.innerHTML += `<div class="text-left"><span class="bg-slate-700 p-2 rounded-lg inline-block shadow-lg">${r}</span></div>`;
             box.scrollTop = box.scrollHeight;
+            // 音声読み上げ
             const s = new SpeechSynthesisUtterance(r.split('【')[0]);
             s.lang = 'en-US'; speechSynthesis.speak(s);
-        }
-
-        function show(v) {
-            document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-            document.getElementById(v + '-view').classList.add('active');
         }
 
         window.onload = load;
