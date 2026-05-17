@@ -16,6 +16,27 @@
     </style>
 </head>
 <body class="min-h-screen pb-24 bg-slate-950">
+<div id="login-screen" class="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center p-6 dq-font text-white">
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-black tracking-widest text-yellow-400 mb-2 animate-pulse">ENGLISH QUEST</h1>
+        <p class="text-xs text-slate-400">〜 とびたて 英語の だいちへ 〜</p>
+    </div>
+
+    <div class="w-full max-w-xs bg-black border-4 border-white p-6 shadow-2xl space-y-6">
+        <div class="text-sm tracking-wide leading-relaxed">
+            APIキーを にゅうりょく してください。
+        </div>
+        
+        <input type="password" id="api-key-input" placeholder="AIzaSy..." 
+               class="w-full bg-black border-2 border-white/50 text-white p-2 text-sm focus:outline-none focus:border-white tracking-widest">
+        
+        <button id="launch-btn" onclick="launchApp()" 
+                class="w-full text-left hover:bg-white/10 p-2 flex items-center gap-2 border border-transparent hover:border-white transition-all">
+            <span class="text-blue-400">▶</span>
+            <span class="font-bold text-sm">ぼうけんを はじめる</span>
+        </button>
+    </div>
+</div>
     <header class="p-4 bg-slate-900 border-b border-white/10 sticky top-0 z-50">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div>
@@ -125,6 +146,7 @@ let ws;
 let audioCtx;
 let processor;
 let micStream;
+let userApiKey = ""; // ユーザーが入力したキーを保持する変数
 
 // PCM音声処理（インラインWorklet）
 const processorCode = `
@@ -145,6 +167,24 @@ const processorCode = `
   }
   registerProcessor('pcm-processor', PCMProcessor);
 `;
+
+function launchApp() {
+    const keyInput = document.getElementById('api-key-input').value.trim();
+    
+    if (!keyInput) {
+        alert("APIキーが にゅうりょく されていません！");
+        return;
+    }
+
+    // ① 入力されたキーを保持する
+    userApiKey = keyInput;
+
+    // ② ログイン画面を非表示（hidden）にして消し去る
+    document.getElementById('login-screen').classList.add('hidden');
+
+    // ③ ここで初めて本来のゲームデータ（load）を読み込む
+    load();
+}
 
 function sendInitialSetup() {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -170,7 +210,8 @@ async function startTalkSession() {
   if (statusEl) statusEl.innerText = "CONNECTING...";
   
   try {
-    const apiKey = "AIzaSyB36pA3Hanw8depoheJggJOVPiLAg9sES0"; // ★ご自身のAPIキー
+    // 元のコード：const apiKey = "YOUR_API_KEY"; を以下のように変更
+const apiKey = userApiKey;
 
     if (!apiKey || apiKey.includes("あなたのAPIキー")) {
       if (statusEl) statusEl.innerText = "API KEY NOT SET";
@@ -353,7 +394,6 @@ async function playResponseAudio(base64) {
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            load();
             tab('battle');
         });
     </script>
