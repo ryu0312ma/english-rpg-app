@@ -164,45 +164,79 @@ function sendInitialSetup() {
     }
 }
 
+// 【デザインはそのまま】セッション開始関数
 async function startTalkSession() {
+  // 元のUIにあるステータス表示エリア（talk-status）をそのまま使用
   const statusEl = document.getElementById('talk-status');
-  statusEl.innerText = "CONNECTING...";
+  if (statusEl) statusEl.innerText = "CONNECTING...";
   
   try {
-    // GASから接続情報を取得
-    google.script.run
-      .withSuccessHandler(async (config) => {
-        await connectToGemini(config);
-      })
-      .withFailureHandler((err) => { 
-        console.error("GAS Config Error:", err);
-        statusEl.innerText = "CONFIG ERROR";
-      })
-      .getGeminiConfig();
+    // ★ここにあなたの本物のAPIキー（AIzaSy...）を直接貼り付けます
+    // これにより process.env や GAS の古いコード（google.script.run）を完全に排除します
+    const apiKey = "AIzaSyB36pA3Hanw8depoheJggJOVPiLAg9sES0"; 
+
+    if (!apiKey || apiKey.includes("あなたのAPIキー")) {
+      if (statusEl) statusEl.innerText = "API KEY NOT SET";
+      return;
+    }
+
+    const config = {
+      modelId: "models/gemini-3.1-flash-live-preview",
+      apiKey: apiKey
+    };
+
+    // WebSocket接続へ進む
+    await connectToGemini(config);
 
   } catch (e) {
-    console.error(e);
-    statusEl.innerText = "CONNECTION FAILED";
+    console.error("Error:", e);
+    if (statusEl) statusEl.innerText = "CONNECTION FAILED";
   }
 }
 
+// 【デザインはそのまま】WebSocket接続関数
 async function connectToGemini(config) {
-  // 正しい連結記号「&」を使ったURL
-  const url = `${config.baseUrl}&key=${config.apiKey}`;
+  const baseUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.ModelService.BidirectionalGenerateContent?model=${config.modelId}`;
+  const url = `${baseUrl}&key=${config.apiKey}`;
   
-  console.log("Connecting to:", url);
-  ws = new WebSocket(url); // ★ここで正しく引数（url）を渡しています
+  ws = new WebSocket(url);
 
   ws.onopen = () => {
-    console.log("WebSocket Connected");
-    document.getElementById('talk-status').innerText = "LIVE (SPEAK NOW)";
-    sendInitialSetup();
-    initMicrophone();
+    // 接続成功時、元のUIのステータスをLIVEに変更
+    const statusEl = document.getElementById('talk-status');
+    if (statusEl) statusEl.innerText = "LIVE (SPEAK NOW)";
+    
+    // 元のコードにあった初期化関数（名前が異なる場合はお使いの関数名に合わせてください）
+    if (typeof sendInitialSetup === 'function') sendInitialSetup();
+    if (typeof initMicrophone === 'function') initMicrophone();
   };
 
-  // ...（以下、メッセージ受信処理など）
-}
+  ws.onmessage = async (event) => {
+    // 元の音声再生ロジックをそのまま維持
+    if (typeof playResponseAudio === 'function') {
+      try {
+        const response = JSON.parse(await event.data.text());
+        if (response.serverContent?.modelTurn?.parts?.[0]?.inlineData) {
+          const base64Audio = response.serverContent.modelTurn.parts[0].inlineData.data;
+          playResponseAudio(base64Audio);
+        }
+      } catch (err) {
+        console.error("Audio play error:", err);
+      }
+    }
+  };
 
+  ws.onerror = (error) => {
+    console.error("WebSocket Error:", error);
+    const statusEl = document.getElementById('talk-status');
+    if (statusEl) statusEl.innerText = "ERROR";
+  };
+
+  ws.onclose = () => {
+    const statusEl = document.getElementById('talk-status');
+    if (statusEl) statusEl.innerText = "CLOSED";
+  };
+}
 async function initMicrophone() {
   audioCtx = new AudioContext({ sampleRate: 16000 });
   const blob = new Blob([processorCode], { type: 'application/javascript' });
