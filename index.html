@@ -3,163 +3,329 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English RPG - Final Fix</title>
+    <title>English RPG</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background: #020617; color: white; font-family: sans-serif; overflow-x: hidden; }
+        body { background: #020617; color: white; font-family: 'Courier New', Courier, monospace; overflow-x: hidden; }
         .hp-fill { transition: width 0.5s ease; }
-        .shake { animation: shake 0.2s; }
-        @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-10px);} 75%{transform:translateX(10px);} }
         .tab-content { display: none; }
-        .active { display: block !important; }
-/* ボタンを押した時に少し小さく（沈むように）見せる */
-button:active { transform: scale(0.95); }
+        button:active { transform: scale(0.95); }
+        /* ドラクエ風フォントのシミュレート */
+        .dq-font { font-family: 'MS Gothic', 'Courier New', monospace; }
     </style>
 </head>
-<body class="min-h-screen pb-24">
+<body class="min-h-screen pb-24 bg-slate-950">
     <header class="p-4 bg-slate-900 border-b border-white/10 sticky top-0 z-50">
-        <div class="max-w-md mx-auto flex items-center gap-4">
-            <div class="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold">LV.<span id="ulv">--</span></div>
-            <div class="bg-slate-700 px-3 py-1 rounded-full text-[10px] font-bold">SCORE: <span id="uscore">0</span></div>
-            <div class="flex-1 bg-slate-800 h-3 rounded-full overflow-hidden">
-                <div id="uhp-b" class="hp-fill bg-green-500 h-full" style="width: 0%"></div>
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-black bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">ENGLISH RPG</h1>
+                <div class="flex gap-4">
+                    <div class="text-xs font-bold text-slate-400">LV: <span id="ulv" class="text-white">-</span></div>
+                    <div class="text-xs font-bold text-slate-400">SCORE: <span id="uscore" class="text-white">-</span></div>
+                </div>
+            </div>
+            <div class="w-32">
+                <div class="flex justify-between text-[10px] mb-1 font-bold"><span>PLAYER HP</span></div>
+                <div class="h-2 bg-slate-800 rounded-full overflow-hidden border border-white/5">
+                    <div id="uhp-b" class="hp-fill h-full bg-gradient-to-r from-emerald-500 to-emerald-400" style="width: 100%"></div>
+                </div>
             </div>
         </div>
     </header>
 
-    <main class="max-w-md mx-auto p-4">
-        <div id="battle-view" class="tab-content active space-y-6">
-            <div id="b-card" class="bg-slate-800/50 p-6 rounded-3xl border border-white/10 text-center">
-                <img id="b-img" class="w-64 h-64 mx-auto rounded-2xl border-2 border-blue-500 shadow-2xl object-cover" src="" alt="Boss">
-                <h2 id="b-name" class="text-2xl font-black mt-4 uppercase italic">---</h2>
-                <div class="mt-4 bg-slate-900 h-3 rounded-full overflow-hidden">
-                    <div id="bhp-b" class="hp-fill bg-red-600 h-full" style="width: 0%"></div>
+    <main class="max-w-md mx-auto p-4 space-y-6">
+        <div class="flex bg-slate-900/80 p-1 rounded-xl border border-white/10">
+            <button onclick="tab('battle')" class="flex-1 py-2 rounded-lg text-xs font-bold transition-all bg-slate-800 shadow-inner">BATTLE</button>
+            <button onclick="tab('chat')" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-500">AI TUTOR</button>
+            <button onclick="tab('talk')" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-500">AI TALK</button>
+        </div>
+
+        <div id="battle" class="tab-content space-y-4">
+            <div id="b-card" class="bg-black/90 border-4 border-white p-4 shadow-lg shadow-white/10">
+                <div id="m-image-container" class="w-full h-40 bg-black flex items-center justify-center p-2 border-2 border-white mb-4 overflow-hidden">
+                    <img id="m-img" src="" alt="Monster" class="max-h-full max-w-full">
+                </div>
+                <div class="space-y-2 text-white">
+                    <div class="flex justify-between items-center dq-font">
+                        <span id="m-name" class="font-bold text-lg tracking-wide">さがしています...</span>
+                        <span id="m-hp-text" class="text-xs text-white/70">HP</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 border border-white/50 overflow-hidden">
+                        <div id="m-hp-bar" class="bg-blue-500 h-full w-full transition-all duration-500"></div>
+                    </div>
                 </div>
             </div>
-            <div class="bg-white text-slate-900 p-8 rounded-3xl text-center shadow-2xl">
-                <div id="qcat" class="text-[10px] font-bold text-blue-500 border border-blue-500 px-2 rounded inline-block mb-2">CATEGORY</div>
-                <div id="qtext" class="text-2xl font-bold italic">Loading...</div>
+
+            <div id="log" class="bg-black/80 border-4 border-white/70 p-4 h-28 overflow-y-auto text-sm dq-font text-white/90 space-y-1">
+                <div id="q-cat" class="text-blue-400 text-xs">READY</div>
+                <div id="q-txt">冒険の準備をしています...</div>
             </div>
-            <div class="flex gap-2">
-                <input type="text" id="ans" placeholder="答えを入力..." class="flex-1 p-4 rounded-xl bg-slate-800 border border-white/10 outline-none text-xl text-white">
-                <button onclick="attack()" class="bg-blue-600 px-6 py-4 rounded-xl font-bold">ATTACK</button>
+
+            <div class="p-2 bg-slate-900 rounded-xl border border-white/10">
+                <input type="text" id="ans" placeholder="答えを入力して ATTACK!" class="w-full bg-black border border-white/30 text-white p-3 rounded-lg focus:outline-none focus:border-blue-500 dq-font">
+            </div>
+
+            <div class="bg-black/90 border-4 border-white p-4 grid grid-cols-2 gap-3 shadow-lg shadow-white/10 dq-font">
+                <button onclick="check()" class="text-left text-white group flex items-center gap-2 hover:bg-white/10 p-1">
+                    <span class="text-blue-400">▶</span>
+                    <div>
+                        <div class="text-[10px] text-slate-500">たたかう</div>
+                        <div class="font-bold italic">ATTACK</div>
+                    </div>
+                </button>
+                <button onclick="tab('chat')" class="text-left text-white group flex items-center gap-2 hover:bg-white/10 p-1">
+                    <span class="text-cyan-400">▶</span>
+                    <div>
+                        <div class="text-[10px] text-slate-500">じゅもん</div>
+                        <div class="font-bold italic">HINT</div>
+                    </div>
+                </button>
             </div>
         </div>
 
-        <div id="chat-view" class="tab-content">
-            <div class="bg-slate-800/50 p-4 rounded-3xl h-[65vh] flex flex-col border border-white/10">
-                <div id="cbox" class="flex-1 overflow-y-auto space-y-4 p-2 text-sm text-white"></div>
-                <div class="mt-4 flex gap-2">
-                    <button onclick="startVoice()" id="mic" class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center"><i class="fas fa-microphone text-xl"></i></button>
-                    <input type="text" id="cin" class="flex-1 bg-slate-700 p-3 rounded-full outline-none text-white" placeholder="Talk in English...">
-                    <button onclick="sendChat()" class="text-blue-500 px-2 text-xl"><i class="fas fa-paper-plane"></i></button>
+        <div id="chat" class="hidden tab-content bg-black border-4 border-white p-4 dq-font overflow-hidden shadow-lg shadow-white/10">
+            <div id="cbox" class="h-60 overflow-y-auto p-2 space-y-4 text-sm text-white/90">
+                <div class="text-left"><span>Hello! Let's practice English.</span></div>
+            </div>
+            <div class="p-2 border-t border-white bg-slate-900/50 flex gap-2">
+                <input type="text" id="chat-input" placeholder="質問を入力..." class="flex-1 bg-black border border-white px-4 py-2 text-sm text-white focus:outline-none">
+                <button onclick="sendChat()" class="bg-white text-black px-4 py-2 text-sm font-bold border-2 border-black">SEND</button>
+            </div>
+        </div>
+
+        <div id="talk" class="hidden tab-content bg-slate-900/50 rounded-2xl border border-white/10 p-8 text-center space-y-6">
+            <div class="relative mx-auto w-32 h-32 flex items-center justify-center">
+                <div id="talk-wave" class="absolute inset-0 bg-blue-500/20 rounded-full animate-ping"></div>
+                <div class="relative bg-blue-600 w-20 h-20 rounded-full flex items-center justify-center shadow-lg shadow-blue-900/40">
+                    <i class="fa-solid fa-microphone text-3xl text-white"></i>
                 </div>
             </div>
+            <div class="space-y-2">
+                <h3 id="talk-status" class="text-lg font-bold text-slate-200">READY TO TALK</h3>
+                <p class="text-sm text-slate-400 italic">Gemini 2.5 Flash Native Audio</p>
+            </div>
+            <button id="talk-btn" onclick="startTalkSession()" class="px-8 py-3 bg-white text-slate-900 ...">
+    START SESSION
+</button>
         </div>
     </main>
 
-    <nav class="fixed bottom-0 w-full bg-slate-900 p-4 border-t border-white/10 flex justify-around">
-        <button onclick="switchView('battle')" id="btn-battle" class="flex flex-col items-center text-blue-500">
-            <i class="fas fa-sword text-xl"></i><span class="text-[10px]">BATTLE</span>
-        </button>
-        <button onclick="switchView('chat')" id="btn-chat" class="flex flex-col items-center text-slate-400">
-            <i class="fas fa-comment text-xl"></i><span class="text-[10px]">CHAT</span>
-        </button>
-    </nav>
+    <div id="ovl" class="fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center justify-center">
+        <div class="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+        <p class="text-blue-400 font-bold animate-pulse">CONNECTING TO WORLD...</p>
+    </div>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbwlNVxLtg7Ds3k-cHROB5O3RsOy-mNPypjXRpV6rOpkTz57ZS67dubtmW5iIUaJ7zc6cA/exec";
+        // GASのURL（ここにあなたのURLを入れる、空欄でも自分自身を呼ぶ設定ならOK）
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwfQLtjlbrxr6_Jc2u8vF6z6FBM5OQpEaccwngC2vYrJF2RY65rDP7p9XYHXoLiq_EyfA/exec"; 
 
-        // 画面切り替え関数の修正版
-        function switchView(v) {
-            // 全画面から active クラスを消す
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            // 指定した画面に active をつける
-            document.getElementById(v + '-view').classList.add('active');
-            
-            // アイコンの色の変更（classList.replace ではなく、直接上書きしてエラーを防ぐ）
-            const btnBattle = document.getElementById('btn-battle');
-            const btnChat = document.getElementById('btn-chat');
-            
-            if (v === 'battle') {
-                btnBattle.className = "flex flex-col items-center text-blue-500";
-                btnChat.className = "flex flex-col items-center text-slate-400";
-            } else {
-                btnBattle.className = "flex flex-col items-center text-slate-400";
-                btnChat.className = "flex flex-col items-center text-blue-500";
+// --- [Native Audio 統合設定] ---
+let ws;
+let audioCtx;
+let processor;
+let micStream;
+
+// PCM音声処理（インラインWorklet）
+const processorCode = `
+  class PCMProcessor extends AudioWorkletProcessor {
+    process(inputs) {
+      const input = inputs[0];
+      if (input && input[0]) {
+        const samples = input[0];
+        const pcm16 = new Int16Array(samples.length);
+        for (let i = 0; i < samples.length; i++) {
+          let s = Math.max(-1, Math.min(1, samples[i]));
+          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+        this.port.postMessage(pcm16.buffer, [pcm16.buffer]);
+      }
+      return true;
+    }
+  }
+  registerProcessor('pcm-processor', PCMProcessor);
+`;
+
+function sendInitialSetup() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        const setupMessage = {
+            setup: {
+                // ここを 3.1 に変更
+                model: "models/gemini-3.1-flash-live-preview", 
+                generation_config: {
+                    response_modalities: ["AUDIO"],
+                    // 3.1では「思考レベル」を調整できるようになりました
+                    thinking_level: "low" // 会話のテンポを優先
+                }
             }
+        };
+        ws.send(JSON.stringify(setupMessage));
+        console.log("Setup message sent for Gemini 3.1 Flash Live");
+    }
+}
+
+async function startTalkSession() {
+  const statusEl = document.getElementById('talk-status');
+  statusEl.innerText = "CONNECTING...";
+  
+  try {
+    // GASから接続情報を取得
+    google.script.run
+      .withSuccessHandler(async (config) => {
+        await connectToGemini(config);
+      })
+      .withFailureHandler((err) => { 
+        console.error("GAS Config Error:", err);
+        statusEl.innerText = "CONFIG ERROR";
+      })
+      .getGeminiConfig();
+
+  } catch (e) {
+    console.error(e);
+    statusEl.innerText = "CONNECTION FAILED";
+  }
+}
+
+async function connectToGemini(config) {
+  // 正しい連結記号「&」を使ったURL
+  const url = `${config.baseUrl}&key=${config.apiKey}`;
+  
+  console.log("Connecting to:", url);
+  ws = new WebSocket(url); // ★ここで正しく引数（url）を渡しています
+
+  ws.onopen = () => {
+    console.log("WebSocket Connected");
+    document.getElementById('talk-status').innerText = "LIVE (SPEAK NOW)";
+    sendInitialSetup();
+    initMicrophone();
+  };
+
+  // ...（以下、メッセージ受信処理など）
+}
+
+async function initMicrophone() {
+  audioCtx = new AudioContext({ sampleRate: 16000 });
+  const blob = new Blob([processorCode], { type: 'application/javascript' });
+  const workletUrl = URL.createObjectURL(blob);
+  await audioCtx.audioWorklet.addModule(workletUrl);
+
+  micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const source = audioCtx.createMediaStreamSource(micStream);
+  processor = new AudioWorkletNode(audioCtx, 'pcm-processor');
+
+  processor.port.onmessage = (e) => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const base64Data = btoa(String.fromCharCode(...new Uint8Array(e.data)));
+      ws.send(JSON.stringify({
+        realtime_input: { media_chunks: [{ data: base64Data, mime_type: "audio/pcm" }] }
+      }));
+    }
+  };
+
+  source.connect(processor);
+}
+
+// 簡易的な音声再生用（実際にはキュー管理が必要ですが、まずは鳴らすことを優先）
+async function playResponseAudio(base64) {
+  const arrayBuffer = Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
+  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  const source = audioCtx.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(audioCtx.destination);
+  source.start();
+}
+        function tab(mode) {
+            const sections = ['battle', 'chat', 'talk'];
+            sections.forEach(s => {
+                const el = document.getElementById(s);
+                if (el) el.style.display = (s === mode) ? 'block' : 'none';
+            });
+            // ボタンのスタイル更新
+            const btns = document.querySelectorAll('button[onclick^="tab"]');
+            btns.forEach(btn => {
+                if (btn.getAttribute('onclick').includes(mode)) {
+                    btn.classList.add('bg-slate-800', 'shadow-inner', 'text-white');
+                    btn.classList.remove('text-slate-500');
+                } else {
+                    btn.classList.remove('bg-slate-800', 'shadow-inner', 'text-white');
+                    btn.classList.add('text-slate-500');
+                }
+            });
         }
 
         async function load() {
-        async function load() {
             try {
+                // doPostを呼び出し
                 const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "getInitialData" }) });
                 const d = await res.json();
                 
-                if (d.error) { alert("エラー: " + d.error); return; }
-
+                // プレイヤー情報反映
                 document.getElementById('ulv').innerText = d.user.level;
-                document.getElementById('uscore').innerText = d.user.score; 
-                document.getElementById('uhp-b').style.width = (d.user.hp/d.user.maxHp*100) + "%";
-                document.getElementById('b-name').innerText = d.boss.name;
-                document.getElementById('b-hp-b').style.width = (d.boss.hp/d.boss.maxHp*100) + "%";
-                document.getElementById('b-img').src = d.boss.image;
-                document.getElementById('q-cat').innerText = d.question.category;
+                document.getElementById('uscore').innerText = d.user.score;
+                document.getElementById('uhp-b').style.width = ((d.user.hp / d.user.maxHp) * 100) + "%";
+                
+                // モンスター情報反映（HTML側のIDに合わせ修正）
+                document.getElementById('m-name').innerText = d.boss.name + " が あらわれた！";
+                document.getElementById('m-hp-bar').style.width = ((d.boss.hp / d.boss.maxHp) * 100) + "%";
+                if (d.boss.image) document.getElementById('m-img').src = d.boss.image;
+
+                // 問題反映
+                document.getElementById('q-cat').innerText = "【" + d.question.category + "】";
                 document.getElementById('q-txt').innerText = d.question.text;
+                
                 window.qid = d.question.id;
+                window.uMaxHp = d.user.maxHp;
+                window.bMaxHp = d.boss.maxHp;
+
             } catch (e) {
-                console.error(e);
+                console.error("Load Error:", e);
             } finally {
-                // 何が起きても必ずローディングを消す
                 document.getElementById('ovl').classList.add('hidden');
             }
         }
 
-        async function attack() {
-        async function attack() {
-            const a = document.getElementById('ans').value;
-            if(!a) return;
-            const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "checkAnswer", userAnswer: a, questionId: window.qid }) });
-            const r = await res.json();
-
-            // ★ここを追加：ゲームオーバー時の処理
-            if (r.gameOver) {
+        async function check() {
+            const ans = document.getElementById('ans').value;
+            if(!ans) return;
+            document.getElementById('ovl').classList.remove('hidden');
+            try {
+                const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "checkAnswer", userAnswer: ans, questionId: window.qid }) });
+                const r = await res.json();
+                
+                // HP更新
+                document.getElementById('m-hp-bar').style.width = ((Number(r.bHp) / window.bMaxHp) * 100) + "%";
+                document.getElementById('uhp-b').style.width = ((Number(r.uHp) / window.uMaxHp) * 100) + "%";
+                
                 alert(r.msg);
-                location.reload(); // 画面をリロードして最初からにする
-                return;
+                document.getElementById('ans').value = "";
+                load();
+            } catch(e) { 
+                alert("Error!"); 
+                document.getElementById('ovl').classList.add('hidden'); 
             }
-
-            if(r.isCorrect) {
-                document.getElementById('b-card').classList.add('shake');
-                setTimeout(()=>document.getElementById('b-card').classList.remove('shake'), 500);
-            }
-            alert(r.msg);
-            document.getElementById('ans').value = "";
-            load();
         }
 
         async function sendChat() {
-            const i = document.getElementById('cin');
-            const msg = i.value; if(!msg) return;
-            const box = document.getElementById('cbox');
-            box.innerHTML += `<div class="text-right mb-2"><span class="bg-blue-600 p-2 rounded-lg inline-block shadow-lg">${msg}</span></div>`;
-            i.value = "Thinking...";
+            const input = document.getElementById('chat-input');
+            const logs = document.getElementById('cbox');
+            const text = input.value.trim();
+            if (!text) return;
+
+            logs.innerHTML += `<div class="text-right mt-2"><span class="bg-blue-600 p-2 rounded text-white inline-block">${text}</span></div>`;
+            input.value = "";
+            
             try {
-                const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "chatWithAI", userMessage: msg }) });
-                const r = await res.json();
-                i.value = "";
-                box.innerHTML += `<div class="text-left mb-2"><span class="bg-slate-700 p-2 rounded-lg inline-block shadow-lg text-white">${r}</span></div>`;
-                box.scrollTop = box.scrollHeight;
-                const s = new SpeechSynthesisUtterance(r.split('【')[0]);
-                s.lang = 'en-US'; speechSynthesis.speak(s);
-            } catch(e) {
-                i.value = "";
-                alert("Chat Error: " + e);
-            }
+                const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "askTutor", message: text }) });
+                const d = await res.json();
+                logs.innerHTML += `<div class="text-left mt-2"><span class="bg-slate-800 p-2 border border-white/20 inline-block">${d.answer}</span></div>`;
+                logs.scrollTop = logs.scrollHeight;
+            } catch (e) { console.error("Chat Error:", e); }
         }
 
-        window.onload = load;
+        window.addEventListener('DOMContentLoaded', () => {
+            load();
+            tab('battle');
+        });
     </script>
 </body>
 </html>
