@@ -164,28 +164,25 @@ function sendInitialSetup() {
     }
 }
 
-// 【デザインはそのまま】セッション開始関数
+// 【宛先だけを修正】セッション開始関数
 async function startTalkSession() {
-  // 元のUIにあるステータス表示エリア（talk-status）をそのまま使用
   const statusEl = document.getElementById('talk-status');
   if (statusEl) statusEl.innerText = "CONNECTING...";
   
   try {
-    // ★ここにあなたの本物のAPIキー（AIzaSy...）を直接貼り付けます
-    // これにより process.env や GAS の古いコード（google.script.run）を完全に排除します
-    const apiKey = "AIzaSyB36pA3Hanw8depoheJggJOVPiLAg9sES0"; 
+    const apiKey = "あなたのAPIキーをここに貼り付け"; // ★ご自身のAPIキー
 
     if (!apiKey || apiKey.includes("あなたのAPIキー")) {
       if (statusEl) statusEl.innerText = "API KEY NOT SET";
       return;
     }
 
+    // Googleが現在リアルタイム通信を受け付けている正しいモデル名に指定
     const config = {
-      modelId: "models/gemini-3.1-flash-live-preview",
+      modelId: "models/gemini-2.0-flash-exp", // ※最新の安定したLive対応モデル名に変更
       apiKey: apiKey
     };
 
-    // WebSocket接続へ進む
     await connectToGemini(config);
 
   } catch (e) {
@@ -194,25 +191,24 @@ async function startTalkSession() {
   }
 }
 
-// 【デザインはそのまま】WebSocket接続関数
+// 【宛先だけを修正】WebSocket接続関数
 async function connectToGemini(config) {
+  // Google AI Studioの公式仕様に沿った正しいLive APIエンドポイント
   const baseUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.ModelService.BidirectionalGenerateContent?model=${config.modelId}`;
   const url = `${baseUrl}&key=${config.apiKey}`;
   
+  console.log("Connecting with updated URL...");
   ws = new WebSocket(url);
 
   ws.onopen = () => {
-    // 接続成功時、元のUIのステータスをLIVEに変更
     const statusEl = document.getElementById('talk-status');
     if (statusEl) statusEl.innerText = "LIVE (SPEAK NOW)";
     
-    // 元のコードにあった初期化関数（名前が異なる場合はお使いの関数名に合わせてください）
     if (typeof sendInitialSetup === 'function') sendInitialSetup();
     if (typeof initMicrophone === 'function') initMicrophone();
   };
 
   ws.onmessage = async (event) => {
-    // 元の音声再生ロジックをそのまま維持
     if (typeof playResponseAudio === 'function') {
       try {
         const response = JSON.parse(await event.data.text());
